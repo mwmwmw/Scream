@@ -10,26 +10,24 @@ export default class Vincent extends MizzyDevice {
 
 			this.context = new (window.AudioContext || window.webkitAudioContext)();
 			this.merge = this.context.createChannelMerger(8);
-			this.merge.connect(this.context.destination);
+			//this.merge.connect();
 			this.voices = [];
-			for(var i = 0; i < 1; i++) {
-				let voice = new Voice(this.context);
-				voice.connect(this.merge, i);
-				this.voices.push(voice);
-			}
+
 			var m = new Mizzy();
 			m.initialize();
 			m.bindKeyboard();
 			m.keyToggle((e)=>{
-				this.voices.forEach((voice) => {
-					if(!voice.inUse) {
-						voice.on(e);
-					}
-				})
+				let voice = new Voice(this.context);
+					voice.connect(this.context.destination);
+					voice.on(e);
+					this.voices.push(voice);
+
 			}, (e)=>{
-				this.voices.forEach((voice) => {
+				this.voices.forEach((voice,i) => {
 					if(voice.value = e.value) {
 						voice.off(e);
+						this.voices.slice(i, 1);
+						console.log(this.voices);
 					}
 				})
 			})

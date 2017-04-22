@@ -13,25 +13,33 @@ export default class Vincent extends MizzyDevice {
 			//this.merge.connect();
 			this.voices = [];
 
-			var m = new Mizzy();
-			m.initialize();
-			m.bindKeyboard();
-			m.keyToggle((e)=>{
-				let voice = new Voice(this.context);
-					voice.connect(this.context.destination);
-					voice.on(e);
-					this.voices.push(voice);
-
-			}, (e)=>{
-				this.voices.forEach((voice,i) => {
-					if(voice.value = e.value) {
-						var off = voice.off(e);
-						this.voices.splice(i, 1);
-					}
-				})
-			})
-
 		}
+
+		NoteOn(MidiEvent) {
+			let voice = new Voice(this.context);
+			voice.connect(this.context.destination);
+			voice.on(MidiEvent);
+			this.voices.push(voice);
+		}
+
+		NoteOff(MidiEvent) {
+			this.voices.forEach((voice,i) => {
+				if(voice.value = MidiEvent.value) {
+					voice.off(MidiEvent);
+					this.voices.splice(i, 1);
+				}
+			})
+		}
+
 }
 
 var vincent = new Vincent();
+
+var m = new Mizzy();
+m.initialize();
+m.bindKeyboard();
+m.keyToggle((e)=>{
+	vincent.NoteOn(e);
+}, (e)=>{
+	vincent.NoteOff(e);
+})

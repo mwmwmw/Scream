@@ -25,9 +25,8 @@ export default class Vincent extends MizzyDevice {
 			}, (e)=>{
 				this.voices.forEach((voice,i) => {
 					if(voice.value = e.value) {
-						voice.off(e);
-						this.voices.slice(i, 1);
-						console.log(this.voices);
+						var off = voice.off(e);
+						this.voices.splice(i, 1);
 					}
 				})
 			})

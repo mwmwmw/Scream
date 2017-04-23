@@ -1,24 +1,18 @@
 export default class Voice {
-	constructor(context, type ="sine") {
+	constructor(context, type ="sawtooth") {
 		this.context = context;
 		this.type = type;
 		this.output = this.context.createGain();
 		this.output.gain.value = 0;
 		this.partials = [];
 		this.value = -1;
-		this.channelGain = 0.2;
+		this.channelGain = 0.1;
 		this.ampEnvelope = {
 			a: 0,
-			d: 0.5,
+			d: 0.1,
 			s: this.channelGain,
 			r: 0.5
 		};
-		this.freqEnvelope = {
-			a: 0.00001,
-			d: 0.1,
-			s: 0,
-			r: 0.5
-		}
 		this.voicePartials();
 	}
 

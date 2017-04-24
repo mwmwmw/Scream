@@ -1,7 +1,9 @@
 import MizzyDevice from "./MizzyDevice";
 import Mizzy from "mizzy";
 import Voice from "./Voices/Voice";
-import Filter from "./Filter/Filter";
+import PercussionVoice from "./Voices/PercussionVoice";
+import Filter from "./Effects/Filter";
+import Reverb from "./Effects/Reverb";
 
 export default class Vincent extends MizzyDevice {
 
@@ -9,14 +11,23 @@ export default class Vincent extends MizzyDevice {
 			super();
 
 			this.context = new (window.AudioContext || window.webkitAudioContext)();
-			this.filter = new Filter(this.context);
-			this.filter.connect(this.context.destination);
+
+
 			this.oscillatorType = "sawtooth";
 			this.voices = [];
 
+			this.tail = new PercussionVoice(this.context, "sawtooth");
+			this.tail.connect(this.context.destination);
+
+			this.reverb = new Reverb(this.context);
+			this.reverb.connect(this.context.destination);
+
+			this.filter = new Filter(this.context);
+			this.filter.connect(this.reverb.destination);
 		}
 
 		NoteOn(MidiEvent) {
+		//	this.tail.trigger(100);
 			let voice = new Voice(this.context, this.oscillatorType);
 			voice.connect(this.filter.destination);
 			voice.on(MidiEvent);
@@ -24,6 +35,7 @@ export default class Vincent extends MizzyDevice {
 		}
 
 		NoteOff(MidiEvent) {
+		//	this.tail.off();
 			this.voices.forEach((voice,i) => {
 				if(voice.value = MidiEvent.value) {
 					voice.off(MidiEvent);

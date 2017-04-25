@@ -1,5 +1,6 @@
 import Voice from "./Voice";
 
+
 export default class Noise extends Voice{
 	constructor(context, gain = 1) {
 		super(context, "none");
@@ -10,13 +11,13 @@ export default class Noise extends Voice{
 
 	voicePartials() {
 
-		var lBuffer = new Float32Array(this.length * 48000);
-		var rBuffer = new Float32Array(this.length * 48000);
-		for(let i = 0; i < this.length * 48000; i++) {
+		var lBuffer = new Float32Array(this.length * this.context.sampleRate);
+		var rBuffer = new Float32Array(this.length * this.context.sampleRate);
+		for(let i = 0; i < this.length * this.context.sampleRate; i++) {
 			lBuffer[i] = Math.random();
 			rBuffer[i] = Math.random();
 		}
-		let buffer = this.context.createBuffer(2, this.length * 48000, 48000);
+		let buffer = this.context.createBuffer(2, this.length * this.context.sampleRate, this.context.sampleRate);
 		buffer.copyToChannel(lBuffer,0);
 		buffer.copyToChannel(rBuffer,1);
 

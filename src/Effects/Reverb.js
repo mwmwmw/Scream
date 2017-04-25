@@ -5,7 +5,7 @@ export default class Reverb {
 		this.context = context;
 		this.destination = this.context.createConvolver();
 		this.reverbTime = 1;
-		this.tailContext = new OfflineAudioContext(2, 48000 * this.reverbTime, 48000);
+		this.tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
 		this.buffer = this.tailContext.createBufferSource();
 		this.tail = new Noise(this.tailContext, 1);
 		this.tail.connect(this.tailContext.destination);

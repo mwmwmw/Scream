@@ -1,37 +1,10 @@
-export default class PercussionVoice {
-	constructor(context, type ="sawtooth") {
-		this.context = context;
-		this.type = type;
-		this.output = this.context.createGain();
-		this.output.gain.value = 0;
-		this.partials = [];
-		this.value = -1;
-		this.channelGain = 0.1;
-		this.ampEnvelope = {
-			a: 0,
-			d: 0.1,
-			s: this.channelGain,
-			r: 0.5
-		};
-		this.voicePartials();
+import Voice from "./Voice";
+
+export default class PercussionVoice extends Voice{
+	constructor(context, type ="sine") {
+		super(context, type);
 	}
 
-	voicePartials() {
-		let osc = this.context.createOscillator();
-		osc.type = this.type;
-		osc.connect(this.output);
-		osc.start(this.context.currentTime);
-		this.partials.push(osc);
-	}
-
-	trigger(velocity) {
-		this.start(this.context.currentTime);
-		console.log("Trigger", this);
-	}
-
-	off() {
-		return this.stop(this.context.currentTime);
-	}
 
 	start(time) {
 		this.output.gain.value = 1;
@@ -47,38 +20,6 @@ export default class PercussionVoice {
 		this.partials.forEach((osc) => {
 			osc.stop(time + this.release * 4);
 		});
-	}
-
-	set attack(value) {
-		this.ampEnvelope.a = value;
-	}
-
-	get attack() {
-		return this.ampEnvelope.a;
-	}
-
-	set decay(value) {
-		this.ampEnvelope.d = value;
-	}
-
-	get decay() {
-		return this.ampEnvelope.d;
-	}
-
-	set sustain(value) {
-		this.ampEnvelope.s = value;
-	}
-
-	get sustain() {
-		return this.ampEnvelope.s;
-	}
-
-	set release(value) {
-		this.ampEnvelope.r = value;
-	}
-
-	get release() {
-		return this.ampEnvelope.r;
 	}
 
 	connect(destination) {

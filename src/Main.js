@@ -2,6 +2,7 @@ import MizzyDevice from "./MizzyDevice";
 import Mizzy from "mizzy";
 import Voice from "./Voices/Voice";
 import PercussionVoice from "./Voices/PercussionVoice";
+import ComplexVoice from "./Voices/ComplexVoice";
 import Filter from "./Effects/Filter";
 import Reverb from "./Effects/Reverb";
 
@@ -24,7 +25,7 @@ export default class Vincent extends MizzyDevice {
 		}
 
 		NoteOn(MidiEvent) {
-			let voice = new Voice(this.context, this.oscillatorType);
+			let voice = new ComplexVoice(this.context, this.oscillatorType, 10);
 			voice.connect(this.filter.destination);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;

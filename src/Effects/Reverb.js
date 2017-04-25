@@ -14,12 +14,12 @@ export default class Reverb {
 		this.tailContext.startRendering().then((buffer) => {
 
 			this.destination.buffer = buffer;
-			var source = new AudioBufferSourceNode(this.context, {
-				buffer: buffer
-			});
-			source.start();
-			source.connect(this.context.destination);
-			console.log(source, buffer.getChannelData(0), buffer.getChannelData(1));
+			// var source = new AudioBufferSourceNode(this.context, {
+			// 	buffer: buffer
+			// });
+			//source.start();
+			//source.connect(this.context.destination);
+			//console.log(source, buffer.getChannelData(0), buffer.getChannelData(1));
 
 		});
 	}

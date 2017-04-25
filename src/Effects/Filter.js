@@ -1,5 +1,5 @@
 export default class Filter {
-	constructor(context, type ="lowpass", cutoff = 1000, resonance = 0.1) {
+	constructor (context, type = "lowpass", cutoff = 1000, resonance = 0.1) {
 		this.context = context;
 		this.destination = this.context.createBiquadFilter();
 		this.type = type;
@@ -14,75 +14,79 @@ export default class Filter {
 		};
 	}
 
-	on(MidiEvent) {
+	on (MidiEvent) {
 		this.start(this.context.currentTime, MidiEvent.frequency);
 	}
 
-	off() {
+	off () {
 		return this.stop(this.context.currentTime);
 	}
 
-	set type(value) {
+	set type (value) {
 		this.destination.type = value;
 	}
+
 	get type () {
 		return this.destination.type;
 	}
 
-	set cutoff(value) {
+	set cutoff (value) {
 		this.destination.frequency.value = value;
 	}
+
 	get cutoff () {
 		return this.destination.frequency.value;
 	}
+
 	set Q (value) {
 		this.destination.Q.value = value;
 	}
+
 	get Q () {
 		return this.destination.Q.value;
 	}
 
-	start(time) {
+	start (time) {
 		return this.destination.frequency.setTargetAtTime(this.sustain, time + this.attack, this.decay + 0.001);
 	}
 
-	stop(time) {
+	stop (time) {
 		return this.destination.frequency.setTargetAtTime(this.cutoff, time, this.release);
 	}
 
-	set attack(value) {
+	set attack (value) {
 		this.envelope.a = value;
 	}
 
-	get attack() {
+	get attack () {
 		return this.envelope.a;
 	}
 
-	set decay(value) {
+	set decay (value) {
 		this.envelope.d = value;
 	}
 
-	get decay() {
+	get decay () {
 		return this.envelope.d;
 	}
 
-	set sustain(value) {
+	set sustain (value) {
 		this.cutoff = value;
 	}
 
-	get sustain() {
+	get sustain () {
 		return this.cutoff;
 	}
 
-	set release(value) {
+	set release (value) {
 		this.envelope.r = value;
 	}
 
-	get release() {
+	get release () {
 		return this.envelope.r;
 	}
 
-	connect(destination) {
+	connect (destination) {
 		this.destination.connect(destination);
 	}
 }

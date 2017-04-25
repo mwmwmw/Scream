@@ -12,36 +12,26 @@ export default class Vincent extends MizzyDevice {
 
 			this.context = new (window.AudioContext || window.webkitAudioContext)();
 
-
 			this.oscillatorType = "sawtooth";
 			this.voices = [];
-
-			this.tail = new PercussionVoice(this.context, "sawtooth");
-			this.tail.connect(this.context.destination);
 
 			this.reverb = new Reverb(this.context);
 			this.reverb.connect(this.context.destination);
 
 			this.filter = new Filter(this.context);
 			this.filter.connect(this.reverb.destination);
+
 		}
 
 		NoteOn(MidiEvent) {
-		//	this.tail.trigger(100);
 			let voice = new Voice(this.context, this.oscillatorType);
 			voice.connect(this.filter.destination);
 			voice.on(MidiEvent);
-			this.voices.push(voice);
+			this.voices[MidiEvent.value] = voice;
 		}
 
 		NoteOff(MidiEvent) {
-		//	this.tail.off();
-			this.voices.forEach((voice,i) => {
-				if(voice.value = MidiEvent.value) {
-					voice.off(MidiEvent);
-					this.voices.splice(i, 1);
-				}
-			})
+			this.voices[MidiEvent.value].off(MidiEvent);
 		}
 
 }

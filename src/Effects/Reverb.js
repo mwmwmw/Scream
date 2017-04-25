@@ -7,9 +7,12 @@ export default class Reverb {
 		this.reverbTime = 1;
 		this.tailContext = new OfflineAudioContext(2, 48000 * this.reverbTime, 48000);
 		this.buffer = this.tailContext.createBufferSource();
-		this.tail = new Noise(this.tailContext);
+		this.tail = new Noise(this.tailContext, 1);
 		this.tail.connect(this.tailContext.destination);
-		this.tail.trigger(100);
+		this.tail.attack = 0;
+		this.tail.decay = 0.2;
+		this.tail.release = 0.2;
+		this.tail.on(100);
 		this.tail.off();
 		this.tailContext.startRendering().then((buffer) => {
 

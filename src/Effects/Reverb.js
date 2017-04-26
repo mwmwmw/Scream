@@ -1,11 +1,18 @@
+import Effect from "./Effect";
 import Noise from "../Voices/Noise";
 
-export default class Reverb {
+export default class Reverb extends Effect {
 	constructor (context) {
-		this.context = context;
-		this.destination = this.context.createConvolver();
+		super(context);
+	}
+
+	setup () {
+		this.effect = this.context.createConvolver();
+
 		this.reverbTime = 1;
 		this.tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
+
+
 		this.buffer = this.tailContext.createBufferSource();
 		this.tail = new Noise(this.tailContext, 1);
 		this.tail.connect(this.tailContext.destination);
@@ -16,7 +23,7 @@ export default class Reverb {
 		this.tail.off();
 		this.tailContext.startRendering().then((buffer) => {
 
-			this.destination.buffer = buffer;
+			this.effect.buffer = buffer;
 			// var source = new AudioBufferSourceNode(this.context, {
 			// 	buffer: buffer
 			// });
@@ -25,9 +32,6 @@ export default class Reverb {
 			//console.log(source, buffer.getChannelData(0), buffer.getChannelData(1));
 
 		});
-	}
-
-	connect (destination) {
-		this.destination.connect(destination);
+		this.effect.connect(this.output);
 	}
 }

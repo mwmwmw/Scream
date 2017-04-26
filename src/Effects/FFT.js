@@ -1,25 +1,38 @@
-export default class FFT {
+import Effect from "./Effect";
+
+export default class FFT extends Effect{
 	constructor (context) {
-		this.context = context;
-		this.destination = this.context.createAnalyser();
-		this.destination.fftSize = 128;
-		this.destination.maxDecibels = -30;
-		this.destination.minDecibels = -144;
-		this.destination.smoothingTimeConstant = 0.5;
-		this.canvas = document.getElementById("fft");
-		this.ctx = this.canvas.getContext("2d");
-		window.requestAnimationFrame(() => {
-			this.log();
-		})
+		super(context);
 	}
 
-	log () {
-		var myDataArray = new Uint8Array(this.destination.frequencyBinCount);
-		this.destination.getByteFrequencyData(myDataArray);
+	setup () {
+		this.canvas = document.createElement("canvas");
+		this.canvas.setAttribute("id","fft");
+		this.ctx = this.canvas.getContext("2d");
+		this.ctx.canvas.width = 1024;
+		this.ctx.canvas.height = 400;
+		document.getElementsByTagName("body")[0].appendChild(this.canvas);
+
+
+
+		this.effect = this.context.createAnalyser();
+		this.effect.fftSize = 1024;
+		// this.effect.maxDecibels = -30;
+		// this.effect.minDecibels = -50;
+		this.effect.smoothingTimeConstant = 0.2;
+		this.effect.connect(this.output);
+		window.requestAnimationFrame(() => {
+			this.draw();
+		});
+	}
+
+	draw () {
+		var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
+		this.effect.getByteFrequencyData(myDataArray);
 
 		var ctx = this.ctx;
 		ctx.save();
-		ctx.globalAlpha = 0.2;
+		ctx.globalAlpha = 0.5;
 		ctx.fillStyle = "rgb(33,33,99)";
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 		ctx.restore();
@@ -29,7 +42,7 @@ export default class FFT {
 		for (var point in myDataArray) {
 			ctx.fillStyle = "rgb(100,255,255)";
 			ctx.fillRect(
-				((width + 2) * i),
+				((width) * i),
 				ctx.canvas.height,
 				width,
 				-myDataArray[point]);
@@ -37,28 +50,7 @@ export default class FFT {
 		}
 
 		window.requestAnimationFrame(() => {
-			this.log();
+			this.draw();
 		})
-	}
-
-	on (MidiEvent) {
-		this.start(this.context.currentTime, MidiEvent.frequency);
-	}
-
-	off () {
-		return this.stop(this.context.currentTime);
-	}
-
-	start (time) {
-
-	}
-
-	stop (time) {
-
-	}
-
-
-	connect (destination) {
-		this.destination.connect(destination);
 	}
 }

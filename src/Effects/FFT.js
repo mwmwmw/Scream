@@ -17,9 +17,9 @@ export default class FFT extends Effect{
 
 		this.effect = this.context.createAnalyser();
 		this.effect.fftSize = 1024;
-		// this.effect.maxDecibels = -30;
-		// this.effect.minDecibels = -50;
-		this.effect.smoothingTimeConstant = 0.2;
+		this.effect.maxDecibels = -50;
+		this.effect.minDecibels = -120;
+		this.effect.smoothingTimeConstant = 0.9;
 		this.effect.connect(this.output);
 		window.requestAnimationFrame(() => {
 			this.draw();
@@ -45,7 +45,7 @@ export default class FFT extends Effect{
 				((width) * i),
 				ctx.canvas.height,
 				width,
-				-myDataArray[point]);
+				-(myDataArray[point]/255)*ctx.canvas.height);
 			i++;
 		}
 

@@ -1,10 +1,12 @@
+import { FILTER_TYPES } from "../Constants";
+
 export default class Filter {
-	constructor (context, type = "lowpass", cutoff = 1000, resonance = 0.1) {
+	constructor (context, type = FILTER_TYPES[0], cutoff = 1000, resonance = 0.1) {
 		this.context = context;
 		this.destination = this.context.createBiquadFilter();
 		this.type = type;
 		this.cutoff = cutoff;
-		this.resonance = 0.1;
+		this.resonance = 0.5;
 		this.envelopeAmount = 1;
 		this.envelope = {
 			a: 0,

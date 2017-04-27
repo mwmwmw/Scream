@@ -1,5 +1,4 @@
-import Voice from "./Voice"
-import Noise from "./Noise"
+import Voice from "./Voice";
 
 export default class ComplexVoice extends Voice {
 
@@ -27,6 +26,4 @@ export default class ComplexVoice extends Voice {
 			this.partials.push(osc);
 		}
 	}
-
-
 }

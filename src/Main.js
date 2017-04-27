@@ -5,7 +5,7 @@ import PercussionVoice from "./Voices/PercussionVoice";
 import FFT from "./Effects/FFT";
 import ComplexVoice from "./Voices/ComplexVoice";
 import Noise from "./Voices/Noise";
-import Filter from "./Components/Filter";
+import Filter from "./Effects/Filter";
 import Reverb from "./Effects/Reverb";
 
 export default class Vincent extends MizzyDevice {
@@ -55,7 +55,7 @@ export default class Vincent extends MizzyDevice {
 }
 
 var vincent = new Vincent();
-	//vincent.addEffect(Filter);
+	vincent.addEffect(Filter);
 	vincent.addEffect(Reverb);
 	vincent.addEffect(FFT);
 	vincent.connectEffects();
@@ -74,9 +74,11 @@ m.initialize().then(()=> {
 	});
 
 	m.onCC(1, (e) => {
-		vincent.effects[0].cutoff = 50 + (e.ratio * 6000)
+		vincent.effects[0].effect.frequency.value = 50 + (e.ratio * 6000)
 	});
-	m.onCC(2, (e) => {});
+	m.onCC(2, (e) => {
+		vincent.effects[0].effect.Q.value = e.ratio * 50;
+	});
 });
 
 

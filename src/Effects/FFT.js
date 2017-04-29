@@ -11,10 +11,6 @@ export default class FFT extends Effect{
 		this.ctx = this.canvas.getContext("2d");
 		this.ctx.canvas.width = 1024;
 		this.ctx.canvas.height = 400;
-		document.getElementsByTagName("body")[0].appendChild(this.canvas);
-
-
-
 		this.effect = this.context.createAnalyser();
 		this.effect.fftSize = 1024;
 		this.effect.maxDecibels = -50;
@@ -52,5 +48,12 @@ export default class FFT extends Effect{
 		window.requestAnimationFrame(() => {
 			this.draw();
 		})
+	}
+	get element () {
+		return this.canvas;
+	}
+
+	addToElement(element) {
+		element.appendChild(this.element);
 	}
 }

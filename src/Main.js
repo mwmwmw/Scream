@@ -91,3 +91,7 @@ window.addEventListener("mousemove", (e)=> {
 	m.sendMidiMessage(ymessage);
 });
 
+var CanvasContainer = document.createElement("div");
+document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
+
+vincent.effects[2].addToElement(CanvasContainer);

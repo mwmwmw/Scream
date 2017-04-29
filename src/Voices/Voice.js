@@ -11,9 +11,8 @@ export default class Voice {
 		this.output.gain.value = this.gain;
 		this.ampEnvelope = new AmpEnvelope(this.context);
 		this.ampEnvelope.connect(this.output);
-		if(type != "none") {
-			this.voicePartials();
-		}
+		this.voicePartials();
+
 	}
 
 	voicePartials() {

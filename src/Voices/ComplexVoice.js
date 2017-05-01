@@ -7,10 +7,11 @@ export default class ComplexVoice extends Voice {
 		this.type = type;
 		this.widen = 50;
 		this.analog = 5;
-		this.voicePartials(amount);
+		this.amount = amount;
 	}
 
-	voicePartials (amount) {
+	init () {
+		var amount = this.amount;
 		for (let i = 0; i < amount ;i++) {
 			let osc = this.context.createOscillator();
 			osc.type = this.type;

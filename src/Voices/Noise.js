@@ -5,7 +5,6 @@ export default class Noise extends Voice{
 	constructor(context, gain = 1) {
 		super(context, "none");
 		this._length = 2;
-		this.voicePartials();
 	}
 
 	get length () {
@@ -15,7 +14,7 @@ export default class Noise extends Voice{
 		this._length = value;
 	}
 
-	voicePartials() {
+	init() {
 		var lBuffer = new Float32Array(this.length * this.context.sampleRate);
 		var rBuffer = new Float32Array(this.length * this.context.sampleRate);
 		for(let i = 0; i < this.length * this.context.sampleRate; i++) {

@@ -11,11 +11,9 @@ export default class Voice {
 		this.output.gain.value = this.gain;
 		this.ampEnvelope = new AmpEnvelope(this.context);
 		this.ampEnvelope.connect(this.output);
-		this.voicePartials();
-
 	}
 
-	voicePartials() {
+	init() {
 		let osc = this.context.createOscillator();
 			osc.type = this.type;
 			osc.connect(this.ampEnvelope.output);
@@ -26,7 +24,7 @@ export default class Voice {
 	on(MidiEvent) {
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
-			osc.frequency.value = MidiEvent.frequency;
+			osc.frequency.value = MidiEvent.frequency/4;
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}

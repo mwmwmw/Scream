@@ -15,6 +15,7 @@ export default class Reverb extends Effect {
 
 		this.buffer = this.tailContext.createBufferSource();
 		this.tail = new Noise(this.tailContext, 1);
+		this.tail.init();
 		this.tail.connect(this.tailContext.destination);
 		this.tail.attack = 0;
 		this.tail.decay = 0.2;

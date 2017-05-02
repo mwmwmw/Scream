@@ -1,5 +1,5 @@
 export default class AmpEnvelope {
-	constructor (context, gain = 0.1) {
+	constructor (context, gain = 1) {
 		this.context = context;
 		this.output = this.context.createGain();
 		this.output.gain.value = gain;

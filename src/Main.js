@@ -24,8 +24,8 @@ export default class Vincent extends MizzyDevice {
 		this.effects = [];
 
 		this.sample = new Sample(this.context);
-		this.sample.load("./Assets/moog7.mp3");
-		//this.sample.record();
+		//this.sample.load("./Assets/moog7.mp3");
+		this.sample.record(1000);
 
 
 	}

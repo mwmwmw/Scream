@@ -5,7 +5,7 @@ import Filter from "./Effects/Filter";
 import Reverb from "./Effects/Reverb";
 import Sample from "./Components/Sample";
 
-import AudioFile from "./Voices/AudioFile";
+import SamplePlayer from "./Voices/SamplePlayer";
 
 export default class Vincent extends MizzyDevice {
 
@@ -25,13 +25,13 @@ export default class Vincent extends MizzyDevice {
 
 		this.sample = new Sample(this.context);
 		this.sample.load("./Assets/moog7.mp3");
-		//this.sample.stream();
+		//this.sample.record();
 
 
 	}
 
 	NoteOn (MidiEvent) {
-		let voice = new AudioFile(this.context, this.sample.buffer);
+		let voice = new SamplePlayer(this.context, this.sample.buffer, true);
 		voice.init();
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);

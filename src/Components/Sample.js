@@ -2,8 +2,8 @@ export default class Sample {
 	constructor (context) {
 
 		this.context = context;
-		this.buffer = null;
-
+		this.buffer = this.context.createBuffer(2, this.context.sampleRate * 2, this.context.sampleRate);
+		this.stream = null
 	}
 
 	load (path) {
@@ -13,43 +13,36 @@ export default class Sample {
 				return this.context.decodeAudioData(myBlob);
 			})
 			.then((buffer) => {
-			 	this.buffer = buffer;
+				this.buffer = buffer;
 			})
 	}
 
-	stream () {
+	record (length = 2000) {
 
-		// navigator.permissions.query({name:'microphone'}).then(function(result) {
-		// 	if (result.state == 'granted') {
-		//
-		// 	} else if (result.state == 'prompt') {
-		//
-		// 	} else if (result.state == 'denied') {
-		//
-		// 	}
-		// 	result.onchange = function() {
-		//
-		// 	};
-		// });
+		this.buffered = 0;
 
-		navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+		this.stream = new Float32Array(this.context.sampleRate * length / 1000);
+
+		navigator.mediaDevices.getUserMedia({audio: true, video: false})
 			.then((stream) => {
 
-				var context = this.context;
-				var input = context.createMediaStreamSource(stream);
-				var processor = context.createScriptProcessor(1024,1,1);
-
+				let input = this.context.createMediaStreamSource(stream);
+				let processor = this.context.createScriptProcessor(2048, 1, 2);
 
 				input.connect(processor);
 				processor.connect(this.context.destination);
-
 				processor.onaudioprocess = (e) => {
-					this.buffer = e.inputBuffer;
-
-					this.buffer.buffer.set(e.inputBuffer, this.buffer.buffer.length);
-
+					let chunk = e.inputBuffer.getChannelData(0);
+					if (chunk.length * this.buffered < this.stream.length) {
+						this.stream.set(chunk, chunk.length * this.buffered);
+						this.buffered++;
+					}
 				};
-
+				setTimeout(() => {
+					processor.disconnect();
+					this.buffer.copyToChannel(this.stream, 0);
+					this.buffer.copyToChannel(this.stream, 1);
+				}, length);
 			})
 
 	}

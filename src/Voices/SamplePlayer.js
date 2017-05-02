@@ -1,28 +1,29 @@
 import Voice from "./Voice";
 
-export default class AudioFile extends Voice {
+export default class SamplePlayer extends Voice {
 
-	constructor (context, buffer, loop = false) {
+	constructor (context, buffer, loop = true, sampleTuneFrequency = 261.625565) {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
 		this.loop = loop;
+		this.sampleTuneFrequency = sampleTuneFrequency;
 	}
 
-	init() {
+	init () {
 		let osc = this.buffer;
 		osc.connect(this.ampEnvelope.output);
-		osc.buffer.loop = this.loop;
+		osc.loop = this.loop;
 		this.partials.push(osc);
 
 	}
 
-	on(MidiEvent) {
+	on (MidiEvent) {
 		let frequency = MidiEvent.frequency;
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
 			osc.start(this.context.currentTime);
-			osc.playbackRate.value =  frequency/261.625565;
+			osc.playbackRate.value = frequency / this.sampleTuneFrequency;
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}

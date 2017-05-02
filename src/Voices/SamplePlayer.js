@@ -1,8 +1,9 @@
 import Voice from "./Voice";
+import {BASE_SAMPLE_TUNING} from "../Constants";
 
 export default class SamplePlayer extends Voice {
 
-	constructor (context, buffer, loop = true, sampleTuneFrequency = 261.625565) {
+	constructor (context, buffer, loop = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;

@@ -4,35 +4,47 @@ import Noise from "../Voices/Noise";
 export default class Reverb extends Effect {
 	constructor (context) {
 		super(context);
+		this.attack = 0;
+		this.decay = 0.2;
+		this.release = 0.2;
 	}
 
 	setup () {
 		this.effect = this.context.createConvolver();
 
 		this.reverbTime = 1;
-		this.tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
 
+		this.wet = this.context.createGain();
+		this.wet.gain.value = 0.4;
+		this.dry = this.context.createGain();
+		this.dry.gain.value = 0.8;
 
-		this.buffer = this.tailContext.createBufferSource();
-		this.tail = new Noise(this.tailContext, 1);
-		this.tail.init();
-		this.tail.connect(this.tailContext.destination);
-		this.tail.attack = 0;
-		this.tail.decay = 0.2;
-		this.tail.release = 0.2;
-		this.tail.on(100);
-		this.tail.off();
-		this.tailContext.startRendering().then((buffer) => {
+		this.buffer = this.renderTail();
 
+	}
+
+	wireUp() {
+		this.input.connect(this.dry);
+		this.input.connect(this.effect);
+
+		this.dry.connect(this.output);
+		this.effect.connect(this.wet);
+		this.wet.connect(this.output);
+	}
+
+	renderTail () {
+		let tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
+		let buffer = tailContext.createBufferSource();
+		let tail = new Noise(tailContext, 1);
+		tail.init();
+		tail.connect(tailContext.destination);
+		tail.attack = this.attack;
+		tail.decay = this.decay;
+		tail.release = this.release;
+		tail.on(100);
+		tail.off();
+		return tailContext.startRendering().then((buffer) => {
 			this.effect.buffer = buffer;
-			// var source = new AudioBufferSourceNode(this.context, {
-			// 	buffer: buffer
-			// });
-			//source.start();
-			//source.connect(this.context.destination);
-			//console.log(source, buffer.getChannelData(0), buffer.getChannelData(1));
-
 		});
-		this.effect.connect(this.output);
 	}
 }

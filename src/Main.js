@@ -1,71 +1,23 @@
-import MizzyDevice from "./MizzyDevice";
+
 import Mizzy from "mizzy";
 import FFT from "./Effects/FFT";
 import Filter from "./Effects/Filter";
 import Reverb from "./Effects/Reverb";
-import Sample from "./Components/Sample";
 
-import SamplePlayer from "./Voices/SamplePlayer";
+import Vincent from "./Vincent";
+import VSS30 from "./VSS30";
 
-export default class Vincent extends MizzyDevice {
+var Audio = new (window.AudioContext || window.webkitAudioContext)();
 
-	constructor () {
-		super();
+var vss30 = new VSS30(Audio);
+	vss30.connect(Audio.destination);
 
-		this.context = new (window.AudioContext || window.webkitAudioContext)();
-
-		this.destination = this.context.createGain();
-		this.destination.connect(this.context.destination);
-		this.effectsConnected = false;
-		this.effectInput = this.destination;
-		this.oscillatorType = "sawtooth";
-		this.voices = [];
-
-		this.effects = [];
-
-		this.sample = new Sample(this.context);
-		//this.sample.load("./Assets/moog7.mp3");
-		this.sample.record(1000);
-
-
-	}
-
-	NoteOn (MidiEvent) {
-		let voice = new SamplePlayer(this.context, this.sample.buffer, true);
-		voice.init();
-		voice.connect(this.effectInput);
-		voice.on(MidiEvent);
-		this.voices[MidiEvent.value] = voice;
-	}
-
-	NoteOff (MidiEvent) {
-		this.voices[MidiEvent.value].off(MidiEvent);
-	}
-
-	addEffect (effect, options) {
-		this.effects.push(new effect(this.context));
-	}
-
-	connectEffects () {
-		this.effectInput = this.effects[0].input;
-		for (let i = this.effects.length - 1; i >= 0; i--) {
-			console.log(this.effects[i]);
-			if (i == this.effects.length - 1) {
-				this.effects[i].connect(this.destination);
-			} else {
-				this.effects[i].connect(this.effects[i + 1].input)
-			}
-		}
-	}
-}
-
-
-var vincent = new Vincent();
+var vincent = new Vincent(Audio, 16, "sawtooth",60);
 vincent.addEffect(Filter);
 vincent.addEffect(Reverb);
 vincent.addEffect(FFT);
 vincent.connectEffects();
-
+//vincent.connect(Audio.destination);
 
 var m = new Mizzy();
 m.initialize().then(() => {
@@ -73,10 +25,10 @@ m.initialize().then(() => {
 	m.bindKeyboard();
 	m.keyToggle((e) => {
 		vincent.NoteOn(e);
-		console.log(e);
+		vss30.NoteOn(e);
 	}, (e) => {
 		vincent.NoteOff(e);
-		console.log(e);
+		vss30.NoteOff(e);
 	});
 
 	m.onCC(1, (e) => {
@@ -87,6 +39,13 @@ m.initialize().then(() => {
 	});
 });
 
+window.addEventListener("keydown", (e) => {
+	if(e.keyCode == 192) {
+		setTimeout(() => {
+			vss30.record();
+		}, 1000);
+	}
+});
 
 window.addEventListener("mousemove", (e) => {
 	var x = Math.round((e.pageX / window.innerWidth) * 127);
@@ -101,3 +60,16 @@ var CanvasContainer = document.createElement("div");
 document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
 
 vincent.effects[2].addToElement(CanvasContainer);
+
+// navigator.permissions.query({name:'microphone'}).then(function(result) {
+// 	if (result.state == 'granted') {
+//
+// 	} else if (result.state == 'prompt') {
+//
+// 	} else if (result.state == 'denied') {
+//
+// 	}
+// 	result.onchange = function() {
+//
+// 	};
+// });

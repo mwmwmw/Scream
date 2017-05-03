@@ -20,7 +20,7 @@ export default class Sample {
 			})
 	}
 
-	record (length = null) {
+	record () {
 		this.buffered = 0;
 		this.stream = new Float32Array(0);
 		navigator.mediaDevices.getUserMedia({audio: true, video: false})
@@ -38,9 +38,6 @@ export default class Sample {
 						this.stream = newStream;
 					this.buffered++;
 				};
-				if(length != null) {
-					setTimeout(() => this.stopRecording(), length);
-				}
 			})
 	}
 	stopRecording() {

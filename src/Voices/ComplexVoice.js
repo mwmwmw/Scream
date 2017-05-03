@@ -8,10 +8,12 @@ export default class ComplexVoice extends Voice {
 		this.widen = wideness;
 		this.analog = analog;
 		this.amount = amount;
+		this.output.gain.value = 1/amount;
 	}
 
 	init () {
 		var amount = this.amount;
+
 		for (let i = 0; i < amount; i++) {
 			let osc = this.context.createOscillator();
 			osc.type = this.type;

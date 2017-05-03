@@ -1,4 +1,3 @@
-
 import Mizzy from "mizzy";
 import FFT from "./Effects/FFT";
 import Filter from "./Effects/Filter";
@@ -9,10 +8,12 @@ import VSS30 from "./VSS30";
 
 var Audio = new (window.AudioContext || window.webkitAudioContext)();
 
+var vssConnected = false;
 var vss30 = new VSS30(Audio);
-	vss30.connect(Audio.destination);
+//vss30.connect(Audio.destination);
 
-var vincent = new Vincent(Audio, 16, "sawtooth",60);
+var vincentConnected = false;
+var vincent = new Vincent(Audio, 16, "sawtooth", 60);
 vincent.addEffect(Filter);
 vincent.addEffect(Reverb);
 vincent.addEffect(FFT);
@@ -41,25 +42,41 @@ m.initialize().then(() => {
 	});
 });
 
+window.addEventListener("keyup", (e) => {
+	switch (e.keyCode) {
+		case 192:
+			vss30.stopRecording();
+			break;
+	}
+});
+
 window.addEventListener("keydown", (e) => {
 	console.log(e.keyCode);
-	switch(e.keyCode) {
+	switch (e.keyCode) {
 		case 192:
-			console.log("...");
-			setTimeout(() => {
-				console.log("recording");
-			vss30.record();
-		}, 1000);
+			if (vssConnected) {
+				vss30.record();
+			}
 			break;
 		case 49:
-			console.log("VSS 30");
-			vss30.connect(Audio.destination);
-			vincent.disconnect(Audio.destination);
+			if (!vssConnected) {
+				console.log("VSS Connected");
+				vss30.connect(Audio.destination);
+			} else {
+				console.log("VSS Disconnected");
+				vss30.disconnect(Audio.destination);
+			}
+			vssConnected = !vssConnected;
 			break;
 		case 50:
-			console.log("Vincent");
-			vss30.disconnect(Audio.destination);
-			vincent.connect(Audio.destination);
+			if (!vincentConnected) {
+				console.log("Vincent Connected");
+				vincent.connect(Audio.destination);
+			} else {
+				console.log("Vincent Disconnected");
+				vincent.disconnect(Audio.destination);
+			}
+			vincentConnected = !vincentConnected;
 			break;
 	}
 

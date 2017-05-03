@@ -25,12 +25,13 @@ export default class Noise extends Voice{
 		buffer.copyToChannel(lBuffer,0);
 		buffer.copyToChannel(rBuffer,1);
 
-		let osc = new AudioBufferSourceNode(this.context, {
+		let osc = this.context.createBufferSource({
 			buffer: buffer,
 			loop: true,
 			loopStart: 0,
 			loopEnd: 2
 		});
+
 			osc.start(this.context.currentTime);
 			osc.connect(this.ampEnvelope.output);
 		this.partials.push(osc);

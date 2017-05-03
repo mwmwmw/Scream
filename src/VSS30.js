@@ -7,10 +7,23 @@ export default class VSS30 extends MizzyDevice {
 	constructor (context) {
 		super(context);
 		this.sample = new Sample(this.context);
+		this.recording = false;
 	}
 
 	record() {
-		this.sample.record(2000);
+		if(!this.recording) {
+			console.log("recording...");
+			this.recording = true;
+			this.sample.record();
+		}
+	}
+
+	stopRecording() {
+		if(this.recording) {
+			this.recording = false;
+			this.sample.stopRecording();
+			console.log("stop recording.", this.sample.buffer.length);
+		}
 	}
 
 	NoteOn (MidiEvent) {

@@ -1,3 +1,5 @@
+const SAMPLE_BUFFER_SIZE = 1024;
+
 export default class Sample {
 	constructor (context) {
 
@@ -21,19 +23,19 @@ export default class Sample {
 
 		this.buffered = 0;
 
-		this.stream = new Float32Array(this.context.sampleRate * length / 1000);
+		this.stream = new Float32Array(this.context.sampleRate * (length / 1000));
 
 		navigator.mediaDevices.getUserMedia({audio: true, video: false})
 			.then((stream) => {
 
 				let input = this.context.createMediaStreamSource(stream);
-				let processor = this.context.createScriptProcessor(2048, 1, 2);
+				let processor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
 
 				input.connect(processor);
 				processor.connect(this.context.destination);
 				processor.onaudioprocess = (e) => {
 					let chunk = e.inputBuffer.getChannelData(0);
-					if (chunk.length * this.buffered < this.stream.length) {
+					if (this.stream.length - chunk.length * this.buffered > chunk.length ) {
 						this.stream.set(chunk, chunk.length * this.buffered);
 						this.buffered++;
 					}

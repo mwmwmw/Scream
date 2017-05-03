@@ -16,9 +16,11 @@ var vincentConnected = false;
 var vincent = new Vincent(Audio, 16, "sawtooth", 60);
 vincent.addEffect(Filter);
 vincent.addEffect(Reverb);
-vincent.addEffect(FFT);
 vincent.connectEffects();
 //vincent.connect(Audio.destination);
+
+var fft = new FFT(Audio);
+	fft.connect(Audio.destination);
 
 var m = new Mizzy();
 m.initialize().then(() => {
@@ -33,12 +35,10 @@ m.initialize().then(() => {
 	});
 
 	m.onCC(1, (e) => {
-		vincent.effects[0].effect.frequency.value = 50 + (e.ratio * 6000)
+		vincent.effects[0].effect.frequency.value = 50 + (e.ratio * 8000)
 	});
 	m.onCC(2, (e) => {
-		//vincent.effects[0].effect.Q.value = e.ratio * 50;
-
-		vincent.wideness = e.ratio * 100;
+		vincent.wideness = e.ratio * 300;
 	});
 });
 
@@ -61,20 +61,20 @@ window.addEventListener("keydown", (e) => {
 		case 49:
 			if (!vssConnected) {
 				console.log("VSS Connected");
-				vss30.connect(Audio.destination);
+				vss30.connect(fft.input);
 			} else {
 				console.log("VSS Disconnected");
-				vss30.disconnect(Audio.destination);
+				vss30.disconnect(fft.input);
 			}
 			vssConnected = !vssConnected;
 			break;
 		case 50:
 			if (!vincentConnected) {
 				console.log("Vincent Connected");
-				vincent.connect(Audio.destination);
+				vincent.connect(fft.input);
 			} else {
 				console.log("Vincent Disconnected");
-				vincent.disconnect(Audio.destination);
+				vincent.disconnect(fft.input);
 			}
 			vincentConnected = !vincentConnected;
 			break;
@@ -94,7 +94,7 @@ window.addEventListener("mousemove", (e) => {
 var CanvasContainer = document.createElement("div");
 document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
 
-vincent.effects[2].addToElement(CanvasContainer);
+fft.addToElement(CanvasContainer);
 
 // navigator.permissions.query({name:'microphone'}).then(function(result) {
 // 	if (result.state == 'granted') {

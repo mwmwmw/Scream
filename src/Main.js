@@ -35,16 +35,34 @@ m.initialize().then(() => {
 		vincent.effects[0].effect.frequency.value = 50 + (e.ratio * 6000)
 	});
 	m.onCC(2, (e) => {
-		vincent.effects[0].effect.Q.value = e.ratio * 50;
+		//vincent.effects[0].effect.Q.value = e.ratio * 50;
+
+		vincent.wideness = e.ratio * 100;
 	});
 });
 
 window.addEventListener("keydown", (e) => {
-	if(e.keyCode == 192) {
-		setTimeout(() => {
+	console.log(e.keyCode);
+	switch(e.keyCode) {
+		case 192:
+			console.log("...");
+			setTimeout(() => {
+				console.log("recording");
 			vss30.record();
 		}, 1000);
+			break;
+		case 49:
+			console.log("VSS 30");
+			vss30.connect(Audio.destination);
+			vincent.disconnect(Audio.destination);
+			break;
+		case 50:
+			console.log("Vincent");
+			vss30.disconnect(Audio.destination);
+			vincent.connect(Audio.destination);
+			break;
 	}
+
 });
 
 window.addEventListener("mousemove", (e) => {

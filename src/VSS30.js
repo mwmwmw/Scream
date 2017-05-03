@@ -10,11 +10,14 @@ export default class VSS30 extends MizzyDevice {
 		this.recording = false;
 	}
 
-	record() {
+	record(timeout = null) {
 		if(!this.recording) {
 			console.log("recording...");
 			this.recording = true;
 			this.sample.record();
+			if(timeout!=null) {
+				setTimeout(() => this.stopRecording(), timeout)
+			}
 		}
 	}
 

@@ -38,4 +38,7 @@ export default class MizzyDevice {
 	connect (destination) {
 		this.output.connect(destination);
 	}
+	disconnect (destination) {
+		this.output.disconnect(destination);
+	}
 }

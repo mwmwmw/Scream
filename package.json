@@ -1,32 +1,32 @@
 {
-  "name": "vincent-synthesizer",
+  "name": "Scream",
   "version": "1.0.0",
-  "description": "A 3 osc synth",
-  "main": "src/main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "description": "Synthesizer Components",
+  "main": "src/Main.js",
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "mizzy": "git+https://github.com/mwmwmw/Mizzy.git#EventChanges"
+  "scripts": {
+    "build": "gulp build",
+    "test": "gulp test"
   },
   "devDependencies": {
-    "babel-preset-es2015": "^6.9.0",
-    "babelify": "^7.3.0",
-    "browserify": "^13.0.1",
-    "gulp": "^3.9.1",
-    "gulp-babel": "^6.1.2",
-    "gulp-browserify": "^0.5.1",
-    "gulp-connect": "^4.1.0",
-    "gulp-minify": "0.0.12",
+    "babel-core": "^6.14.0",
+    "babel-plugin-external-helpers": "^6.8.0",
+    "babel-preset-es2015": "^6.14.0",
+    "chai": "^3.5.0",
+    "gulp": "gulpjs/gulp#4.0",
     "gulp-rename": "^1.2.2",
-    "gulp-sass": "^2.3.2",
-    "gulp-sourcemaps": "^1.6.0",
-    "gulp-uglify": "^1.5.4",
-    "gulp-watch": "^4.3.8",
+    "gulp-sourcemaps": "1.7.x",
+    "gulp-uglify": "^2.0.0",
+    "karma": "^1.3.0",
+    "karma-chai": "^0.1.0",
+    "karma-mocha": "^1.2.0",
+    "karma-mocha-reporter": "^2.2.0",
+    "karma-phantomjs-launcher": "^1.0.2",
+    "mocha": "^3.1.2",
+    "rollup-plugin-babel": "^2.6.1",
+    "rollup-stream": "^1.12.0",
     "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.1.0",
-    "watchify": "^3.9.0"
+    "vinyl-source-stream": "^1.1.0"
   }
 }

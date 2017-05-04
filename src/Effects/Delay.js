@@ -1,3 +1,8 @@
-/**
- * Created by skint on 2017-04-23.
- */
+import Effect from "./Effect";
+
+export default class Delay extends Effect {
+	constructor () {
+		super();
+	}
+
+}

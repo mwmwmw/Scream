@@ -370,14 +370,68 @@ var Chorus = function (_Effect) {
 	return Chorus;
 }(Effect);
 
+var Filter$1 = function (_Effect) {
+	inherits(Filter, _Effect);
+
+	function Filter(context) {
+		var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : FILTER_TYPES[0];
+		var cutoff = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1000;
+		var resonance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0.9;
+		classCallCheck(this, Filter);
+
+		var _this = possibleConstructorReturn(this, (Filter.__proto__ || Object.getPrototypeOf(Filter)).call(this, context));
+
+		_this.effect.frequency.value = cutoff;
+		_this.effect.Q.value = resonance;
+		_this.effect.type = type;
+		return _this;
+	}
+
+	createClass(Filter, [{
+		key: "setup",
+		value: function setup() {
+			this.effect = this.context.createBiquadFilter();
+			this.effect.connect(this.output);
+		}
+	}]);
+	return Filter;
+}(Effect);
+
 var Delay = function (_Effect) {
 	inherits(Delay, _Effect);
 
-	function Delay() {
+	function Delay(context) {
 		classCallCheck(this, Delay);
-		return possibleConstructorReturn(this, (Delay.__proto__ || Object.getPrototypeOf(Delay)).call(this));
+		return possibleConstructorReturn(this, (Delay.__proto__ || Object.getPrototypeOf(Delay)).call(this, context));
 	}
 
+	createClass(Delay, [{
+		key: "setup",
+		value: function setup() {
+			this.effect = this.context.createDelay();
+			this.effect.delayTime.value = 0.5;
+			this.dry = this.context.createGain();
+			this.wet = this.context.createGain();
+			this.feedback = this.context.createGain();
+			this.feedback.gain.value = 0.75;
+			this.filter = new Filter$1(this.context, "lowpass", 1000, 0.2);
+		}
+	}, {
+		key: "wireUp",
+		value: function wireUp() {
+
+			this.input.connect(this.dry);
+			this.dry.connect(this.output);
+			this.wet.connect(this.output);
+
+			this.input.connect(this.effect);
+			this.effect.connect(this.wet);
+
+			this.effect.connect(this.filter.input);
+			this.filter.connect(this.feedback);
+			this.feedback.connect(this.effect);
+		}
+	}]);
 	return Delay;
 }(Effect);
 
@@ -448,33 +502,6 @@ var FFT = function (_Effect) {
 		}
 	}]);
 	return FFT;
-}(Effect);
-
-var Filter$1 = function (_Effect) {
-	inherits(Filter, _Effect);
-
-	function Filter(context) {
-		var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : FILTER_TYPES[0];
-		var cutoff = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 1000;
-		var resonance = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0.9;
-		classCallCheck(this, Filter);
-
-		var _this = possibleConstructorReturn(this, (Filter.__proto__ || Object.getPrototypeOf(Filter)).call(this, context));
-
-		_this.effect.frequency.value = cutoff;
-		_this.effect.Q.value = resonance;
-		_this.effect.type = type;
-		return _this;
-	}
-
-	createClass(Filter, [{
-		key: "setup",
-		value: function setup() {
-			this.effect = this.context.createBiquadFilter();
-			this.effect.connect(this.output);
-		}
-	}]);
-	return Filter;
 }(Effect);
 
 var Voice = function () {
@@ -807,6 +834,51 @@ var MizzyDevice = function () {
 	return MizzyDevice;
 }();
 
+var Vincent = function (_MizzyDevice) {
+	inherits(Vincent, _MizzyDevice);
+
+	function Vincent(context, count) {
+		var type = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "sawtooth";
+		var wideness = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 50;
+		classCallCheck(this, Vincent);
+
+		var _this = possibleConstructorReturn(this, (Vincent.__proto__ || Object.getPrototypeOf(Vincent)).call(this, context));
+
+		_this.oscillatorType = type;
+		_this.numberOfOscillators = count;
+		_this._wideness = wideness;
+		return _this;
+	}
+
+	createClass(Vincent, [{
+		key: "NoteOn",
+		value: function NoteOn(MidiEvent) {
+			var voice = new ComplexVoice(this.context, this.oscillatorType, this.numberOfOscillators);
+			voice.init();
+			voice.connect(this.effectInput);
+			voice.on(MidiEvent);
+			this.voices[MidiEvent.value] = voice;
+		}
+	}, {
+		key: "wideness",
+		set: function set$$1(value) {
+			var _this2 = this;
+
+			this._wideness = value;
+			this.voices.forEach(function (voice) {
+				return voice.wideness = _this2._wideness;
+			});
+		},
+		get: function get$$1() {
+			return this._wideness;
+		}
+	}, {
+		key: "type",
+		set: function set$$1(value) {}
+	}]);
+	return Vincent;
+}(MizzyDevice);
+
 var VSS30 = function (_MizzyDevice) {
 	inherits(VSS30, _MizzyDevice);
 
@@ -858,51 +930,6 @@ var VSS30 = function (_MizzyDevice) {
 		}
 	}]);
 	return VSS30;
-}(MizzyDevice);
-
-var Vincent = function (_MizzyDevice) {
-	inherits(Vincent, _MizzyDevice);
-
-	function Vincent(context, count) {
-		var type = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "sawtooth";
-		var wideness = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 50;
-		classCallCheck(this, Vincent);
-
-		var _this = possibleConstructorReturn(this, (Vincent.__proto__ || Object.getPrototypeOf(Vincent)).call(this, context));
-
-		_this.oscillatorType = type;
-		_this.numberOfOscillators = count;
-		_this._wideness = wideness;
-		return _this;
-	}
-
-	createClass(Vincent, [{
-		key: "NoteOn",
-		value: function NoteOn(MidiEvent) {
-			var voice = new ComplexVoice(this.context, this.oscillatorType, this.numberOfOscillators);
-			voice.init();
-			voice.connect(this.effectInput);
-			voice.on(MidiEvent);
-			this.voices[MidiEvent.value] = voice;
-		}
-	}, {
-		key: "wideness",
-		set: function set$$1(value) {
-			var _this2 = this;
-
-			this._wideness = value;
-			this.voices.forEach(function (voice) {
-				return voice.wideness = _this2._wideness;
-			});
-		},
-		get: function get$$1() {
-			return this._wideness;
-		}
-	}, {
-		key: "type",
-		set: function set$$1(value) {}
-	}]);
-	return Vincent;
 }(MizzyDevice);
 
 var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample };

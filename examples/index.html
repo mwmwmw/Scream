@@ -24,6 +24,7 @@
 	var vincent = new Scream.Synths.Vincent(Audio, 16, "sawtooth", 60);
 	vincent.addEffect( Scream.Effects.Filter);
 	vincent.addEffect( Scream.Effects.Reverb);
+	vincent.addEffect( Scream.Effects.Delay);
 	vincent.connectEffects();
 
 	var fft = new  Scream.Effects.FFT(Audio);

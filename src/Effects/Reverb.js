@@ -15,9 +15,9 @@ export default class Reverb extends Effect {
 		this.reverbTime = 1;
 
 		this.wet = this.context.createGain();
-		this.wet.gain.value = 0.4;
+		this.wet.gain.value = 1;
 		this.dry = this.context.createGain();
-		this.dry.gain.value = 0.8;
+		this.dry.gain.value = 1;
 
 		this.buffer = this.renderTail();
 
@@ -47,4 +47,30 @@ export default class Reverb extends Effect {
 			this.effect.buffer = buffer;
 		});
 	}
+
+	set decayTime(value) {
+		let dc = value/3;
+		this.reverbTime = value;
+		this.attack = 0;
+		this.decay = dc;
+		this.release = dc;
+		this.buffer = this.renderTail();
+	}
+
+	set dry (value) {
+		this.dry.gain.value = value;
+	}
+
+	get dry () {
+		this.dry.gain.value;
+	}
+
+	set wet (value) {
+		this.wet.gain.value = value;
+	}
+
+	get wet () {
+		this.wet.gain.value;
+	}
+
 }

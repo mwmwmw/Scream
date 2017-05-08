@@ -1,5 +1,5 @@
-import MizzyDevice from "./MizzyDevice";
-import ComplexVoice from "./Voices/ComplexVoice";
+import MizzyDevice from "../MizzyDevice";
+import ComplexVoice from "../Voices/ComplexVoice";
 
 export default class Vincent extends MizzyDevice {
 

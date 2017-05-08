@@ -1,6 +1,6 @@
-import MizzyDevice from "./MizzyDevice";
-import Sample from "./Components/Sample";
-import SamplePlayer from "./Voices/SamplePlayer";
+import MizzyDevice from "../MizzyDevice";
+import Sample from "../Components/Sample";
+import SamplePlayer from "../Voices/SamplePlayer";
 
 export default class VSS30 extends MizzyDevice {
 

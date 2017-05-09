@@ -57,20 +57,4 @@ export default class Reverb extends Effect {
 		this.buffer = this.renderTail();
 	}
 
-	set dry (value) {
-		this.dry.gain.value = value;
-	}
-
-	get dry () {
-		this.dry.gain.value;
-	}
-
-	set wet (value) {
-		this.wet.gain.value = value;
-	}
-
-	get wet () {
-		this.wet.gain.value;
-	}
-
 }

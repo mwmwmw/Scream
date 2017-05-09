@@ -13,7 +13,7 @@ export default class Delay extends Effect {
 		this.wet = this.context.createGain();
 		this.feedback = this.context.createGain();
 		this.feedback.gain.value = 0.75;
-		this.filter = new Filter(this.context, "lowpass", 1000, 0.3);
+		this.filter = new Filter(this.context, "bandpass", 1000, 0.3);
 	}
 
 	wireUp () {
@@ -57,22 +57,6 @@ export default class Delay extends Effect {
 
 	get filterQ () {
 		return this.filter.effect.Q.value;
-	}
-
-	set dry (value) {
-		this.dry.gain.value = value;
-	}
-
-	get dry () {
-		this.dry.gain.value;
-	}
-
-	set wet (value) {
-		this.wet.gain.value = value;
-	}
-
-	get wet () {
-		this.wet.gain.value;
 	}
 
 }

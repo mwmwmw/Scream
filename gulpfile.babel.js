@@ -83,5 +83,10 @@ gulp.task("karma", function (done) {
 });
 
 
-gulp.task("build", gulp.parallel("bundle:es6", "bundle:cjs", "bundle:global" ));
+gulp.task('update-example', function(done) {
+	gulp.src('./dist/scream.js').pipe(gulp.dest('./examples/js/'));
+	done();
+});
+
+gulp.task("build", gulp.parallel("bundle:es6", "bundle:cjs", "bundle:global", "update-example" ));
 gulp.task("test", gulp.series("bundle:global", gulp.parallel("watch", "karma")));

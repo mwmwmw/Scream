@@ -8,9 +8,9 @@ export default class AmpEnvelope {
 		this.gain = gain;
 		this.envelope = {
 			a: 0,
-			d: 0.1,
+			d: 0.0001,
 			s: this.gain,
-			r: 0.5
+			r: 0.0001
 		};
 	}
 

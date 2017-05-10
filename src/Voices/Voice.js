@@ -24,7 +24,7 @@ export default class Voice {
 	on(MidiEvent) {
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
-			osc.frequency.value = MidiEvent.frequency/4;
+			osc.frequency.value = MidiEvent.frequency;
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}

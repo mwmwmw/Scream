@@ -80,9 +80,9 @@ var AmpEnvelope = function () {
 		this.gain = gain;
 		this.envelope = {
 			a: 0,
-			d: 0.1,
+			d: 0.0001,
 			s: this.gain,
-			r: 0.5
+			r: 0.0001
 		};
 	}
 
@@ -414,7 +414,7 @@ var Delay = function (_Effect) {
 			this.wet = this.context.createGain();
 			this.feedback = this.context.createGain();
 			this.feedback.gain.value = 0.75;
-			this.filter = new Filter$1(this.context, "lowpass", 1000, 0.2);
+			this.filter = new Filter$1(this.context, "bandpass", 1000, 0.3);
 		}
 	}, {
 		key: "wireUp",
@@ -430,6 +430,34 @@ var Delay = function (_Effect) {
 			this.effect.connect(this.filter.input);
 			this.filter.connect(this.feedback);
 			this.feedback.connect(this.effect);
+		}
+	}, {
+		key: "feedbackAmount",
+		set: function set$$1(value) {
+			var normalizedValue = value;
+			if (normalizedValue > 0.98) {
+				normalizedValue = 0.98;
+			}
+			this.feedback.gain.value = normalizedValue;
+		},
+		get: function get$$1() {
+			return this.feedback.gain.value;
+		}
+	}, {
+		key: "filterFrequency",
+		set: function set$$1(value) {
+			this.filter.effect.frequency.value = value;
+		},
+		get: function get$$1() {
+			return this.filter.effect.frequency.value;
+		}
+	}, {
+		key: "filterQ",
+		set: function set$$1(value) {
+			this.filter.effect.Q.value = value;
+		},
+		get: function get$$1() {
+			return this.filter.effect.Q.value;
 		}
 	}]);
 	return Delay;
@@ -534,7 +562,7 @@ var Voice = function () {
 		value: function on(MidiEvent) {
 			this.value = MidiEvent.value;
 			this.partials.forEach(function (osc) {
-				osc.frequency.value = MidiEvent.frequency / 4;
+				osc.frequency.value = MidiEvent.frequency;
 			});
 			this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 		}
@@ -634,9 +662,9 @@ var Reverb = function (_Effect) {
 			this.reverbTime = 1;
 
 			this.wet = this.context.createGain();
-			this.wet.gain.value = 0.4;
+			this.wet.gain.value = 1;
 			this.dry = this.context.createGain();
-			this.dry.gain.value = 0.8;
+			this.dry.gain.value = 1;
 
 			this.buffer = this.renderTail();
 		}
@@ -669,8 +697,121 @@ var Reverb = function (_Effect) {
 				_this2.effect.buffer = buffer;
 			});
 		}
+	}, {
+		key: "decayTime",
+		set: function set$$1(value) {
+			var dc = value / 3;
+			this.reverbTime = value;
+			this.attack = 0;
+			this.decay = dc;
+			this.release = dc;
+			this.buffer = this.renderTail();
+		}
 	}]);
 	return Reverb;
+}(Effect);
+
+var MAX = 1;
+var MIN = 0;
+var DEFAULT = 1;
+var WINDOW_SIZE = 512;
+
+var Saturate = function (_Effect) {
+	inherits(Saturate, _Effect);
+
+	function Saturate(context) {
+		classCallCheck(this, Saturate);
+
+		var _this = possibleConstructorReturn(this, (Saturate.__proto__ || Object.getPrototypeOf(Saturate)).call(this, context));
+
+		_this._amount = DEFAULT;
+
+		_this.canvas = document.createElement("canvas");
+		_this.canvas.setAttribute("id", "saturate");
+		_this.ctx = _this.canvas.getContext("2d");
+		_this.ctx.canvas.width = 512;
+		_this.ctx.canvas.height = 512;
+		window.requestAnimationFrame(function () {
+			_this.draw();
+		});
+		return _this;
+	}
+
+	createClass(Saturate, [{
+		key: "setup",
+		value: function setup() {
+			this.effect = this.context.createWaveShaper();
+			this.effect.curve = this.createCurve();
+			console.log(this.effect.curve);
+			this.effect.oversample = '4x';
+		}
+	}, {
+		key: "createCurve",
+		value: function createCurve() {
+			var amount = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : DEFAULT;
+
+			var curve = new Float32Array(WINDOW_SIZE);
+			var x = 0;
+			for (var i = 0; i < WINDOW_SIZE; i++) {
+				var x = 1 - i / WINDOW_SIZE * 2;
+				curve[i] = this.f(x, amount);
+			}
+
+			return curve;
+		}
+	}, {
+		key: "f",
+		value: function f(x) {
+			var range = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : DEFAULT;
+
+
+			return x * range;
+			//return Math.sin(Math.pow(Math.cos(Math.PI * (x) / 4.0), 1) * range) * ((range / 0.5) * 1.18) *10;
+		}
+	}, {
+		key: "draw",
+		value: function draw() {
+			var _this2 = this;
+
+			var ctx = this.ctx;
+			ctx.save();
+			ctx.globalAlpha = 0.5;
+			ctx.fillStyle = "rgb(33,33,99)";
+			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			ctx.restore();
+			var width = 1;
+
+			for (var i = 0; i < this.effect.curve.length; i++) {
+				var point = this.effect.curve[i];
+				ctx.fillStyle = "rgb(100,255,255)";
+				ctx.fillRect(i, WINDOW_SIZE * .5 + point * WINDOW_SIZE, width, 1);
+			}
+
+			window.requestAnimationFrame(function () {
+				_this2.draw();
+			});
+		}
+	}, {
+		key: "addToElement",
+		value: function addToElement(element) {
+			element.appendChild(this.element);
+		}
+	}, {
+		key: "amount",
+		set: function set$$1(value) {
+			this._amount = 1 + (MIN + value * MAX);
+			this.effect.curve = this.createCurve(this._amount);
+		},
+		get: function get$$1() {
+			return this._amount;
+		}
+	}, {
+		key: "element",
+		get: function get$$1() {
+			return this.canvas;
+		}
+	}]);
+	return Saturate;
 }(Effect);
 
 var ComplexVoice = function (_Voice) {
@@ -797,7 +938,9 @@ var MizzyDevice = function () {
 	}, {
 		key: "NoteOff",
 		value: function NoteOff(MidiEvent) {
-			this.voices[MidiEvent.value].off(MidiEvent);
+			if (this.voices[MidiEvent.value] != undefined) {
+				this.voices[MidiEvent.value].off(MidiEvent);
+			}
 		}
 	}, {
 		key: "onCC",
@@ -933,7 +1076,7 @@ var VSS30 = function (_MizzyDevice) {
 }(MizzyDevice);
 
 var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample };
-var Effects = { Chorus: Chorus, Delay: Delay, Filter: Filter$1, Reverb: Reverb, FFT: FFT };
+var Effects = { Chorus: Chorus, Delay: Delay, Filter: Filter$1, Reverb: Reverb, FFT: FFT, Saturate: Saturate };
 var Voices = { ComplexVoice: ComplexVoice, Noise: Noise, SamplePlayer: SamplePlayer, Voice: Voice };
 var Synths = { VSS30: VSS30, Vincent: Vincent };
 

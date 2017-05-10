@@ -4,16 +4,23 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <style>
-        body {margin:0; overflow: hidden;}
-        canvas {width: 100vw; height: 100vh;}
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
-<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/710978b6/dist/mizzy.min.js" type="application/javascript"></script>
+<script src="js/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 
-    console.log(Scream);
+	console.log(Scream);
 
 	var Audio = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -22,12 +29,15 @@
 
 	var vincentConnected = false;
 	var vincent = new Scream.Synths.Vincent(Audio, 16, "sawtooth", 60);
-	vincent.addEffect( Scream.Effects.Filter);
-	vincent.addEffect( Scream.Effects.Reverb);
-	vincent.addEffect( Scream.Effects.Delay);
+	vincent.addEffect(Scream.Effects.Filter);
+	vincent.addEffect(Scream.Effects.Reverb);
+	vincent.addEffect(Scream.Effects.Delay);
+	vincent.attack = 0;
+	vincent.decay = 0.01;
+	vincent.release = 0.00001;
 	vincent.connectEffects();
 
-	var fft = new  Scream.Effects.FFT(Audio);
+	var fft = new Scream.Effects.FFT(Audio);
 	fft.connect(Audio.destination);
 
 	var m = new Mizzy();
@@ -98,6 +108,43 @@
 		var ymessage = Mizzy.Generate.CCEvent(2, y);
 		m.sendMidiMessage(ymessage);
 	});
+
+
+	var sequence = [];
+	sequence[0] = Mizzy.Generate.NoteOn(60, 127);
+	sequence[1] = Mizzy.Generate.NoteOff(60, 127);
+	sequence[4] = Mizzy.Generate.NoteOn(66, 127);
+	sequence[5] = Mizzy.Generate.NoteOff(66, 127);
+	sequence[8] = Mizzy.Generate.NoteOn(68, 127);
+	sequence[9] = Mizzy.Generate.NoteOff(68, 127);
+	sequence[12] = Mizzy.Generate.NoteOn(54, 127);
+	sequence[13] = Mizzy.Generate.NoteOff(54, 127);
+
+	function processTick (loopIndex) {
+		console.log(sequence[loopIndex], loopIndex);
+		if(sequence[loopIndex] != undefined) {
+                var message = sequence[loopIndex];
+				var event = Mizzy.Generate.MidiEvent(message, "C");
+				m.sendMidiMessage(event);
+		}
+	}
+
+
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+
+	m.clock.play();
+
+	setTimeout(() => {
+		//m.removeKeyToggle(toggles);
+		//m.removeCC(1,CCref);
+
+		m.clock.stop();
+		m.panic();
+
+	}, 5000);
+	setTimeout(() => {
+		m.clock.play();
+	}, 10000);
 
 	var CanvasContainer = document.createElement("div");
 	document.getElementsByTagName("body")[0].appendChild(CanvasContainer);

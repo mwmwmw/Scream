@@ -8,9 +8,9 @@ class AmpEnvelope {
 		this.gain = gain;
 		this.envelope = {
 			a: 0,
-			d: 0.1,
+			d: 0.0001,
 			s: this.gain,
-			r: 0.5
+			r: 0.0001
 		};
 	}
 
@@ -285,7 +285,7 @@ class Delay extends Effect {
 		this.wet = this.context.createGain();
 		this.feedback = this.context.createGain();
 		this.feedback.gain.value = 0.75;
-		this.filter = new Filter$1(this.context, "lowpass", 1000, 0.3);
+		this.filter = new Filter$1(this.context, "bandpass", 1000, 0.3);
 	}
 
 	wireUp () {
@@ -329,22 +329,6 @@ class Delay extends Effect {
 
 	get filterQ () {
 		return this.filter.effect.Q.value;
-	}
-
-	set dry (value) {
-		this.dry.gain.value = value;
-	}
-
-	get dry () {
-		this.dry.gain.value;
-	}
-
-	set wet (value) {
-		this.wet.gain.value = value;
-	}
-
-	get wet () {
-		this.wet.gain.value;
 	}
 
 }
@@ -431,7 +415,7 @@ class Voice {
 	on(MidiEvent) {
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
-			osc.frequency.value = MidiEvent.frequency/4;
+			osc.frequency.value = MidiEvent.frequency;
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}
@@ -547,20 +531,91 @@ class Reverb extends Effect {
 		this.buffer = this.renderTail();
 	}
 
-	set dry (value) {
-		this.dry.gain.value = value;
+}
+
+const MAX = 1;
+const MIN = 0;
+const DEFAULT = 1;
+const WINDOW_SIZE = 512;
+
+class Saturate extends Effect {
+	constructor(context) {
+		super(context);
+		this._amount = DEFAULT;
+
+		this.canvas = document.createElement("canvas");
+		this.canvas.setAttribute("id", "saturate");
+		this.ctx = this.canvas.getContext("2d");
+		this.ctx.canvas.width = 512;
+		this.ctx.canvas.height = 512;
+		window.requestAnimationFrame(() => {
+			this.draw();
+		});
 	}
 
-	get dry () {
-		this.dry.gain.value;
+	setup() {
+		this.effect = this.context.createWaveShaper();
+		this.effect.curve = this.createCurve();
+		console.log(this.effect.curve);
+		this.effect.oversample = '4x';
 	}
 
-	set wet (value) {
-		this.wet.gain.value = value;
+	createCurve(amount = DEFAULT) {
+			var curve = new Float32Array(WINDOW_SIZE);
+		var x = 0;
+		for (let i = 0; i < WINDOW_SIZE; i++) {
+			var x = 1 - (i/WINDOW_SIZE) * 2;
+			curve[i] = this.f(x, amount);
+		}
+
+		return curve;
 	}
 
-	get wet () {
-		this.wet.gain.value;
+	f(x, range = DEFAULT) {
+
+		return x * range;
+		//return Math.sin(Math.pow(Math.cos(Math.PI * (x) / 4.0), 1) * range) * ((range / 0.5) * 1.18) *10;
+	}
+
+	draw() {
+		var ctx = this.ctx;
+		ctx.save();
+		ctx.globalAlpha = 0.5;
+		ctx.fillStyle = "rgb(33,33,99)";
+		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+		ctx.restore();
+		var width = 1;
+
+		for (var i = 0; i < this.effect.curve.length; i++) {
+			var point = this.effect.curve[i];
+			ctx.fillStyle = "rgb(100,255,255)";
+			ctx.fillRect(
+				i,
+				(WINDOW_SIZE*.5) + (point*WINDOW_SIZE),
+				width,
+				1);
+		}
+
+		window.requestAnimationFrame(() => {
+			this.draw();
+		});
+	}
+
+	set amount(value) {
+		this._amount = 1 + (MIN + (value * MAX));
+		this.effect.curve = this.createCurve(this._amount);
+	}
+
+	get amount() {
+		return this._amount;
+	}
+
+	get element() {
+		return this.canvas;
+	}
+
+	addToElement(element) {
+		element.appendChild(this.element);
 	}
 
 }
@@ -660,7 +715,9 @@ class MizzyDevice {
 	}
 
 	NoteOff (MidiEvent) {
-		this.voices[MidiEvent.value].off(MidiEvent);
+		if(this.voices[MidiEvent.value] != undefined) {
+			this.voices[MidiEvent.value].off(MidiEvent);
+		}
 	}
 
 	onCC (MidiEvent) {
@@ -760,7 +817,7 @@ class VSS30 extends MizzyDevice {
 }
 
 const Components = {FilterEnvelope: Filter, AmpEnvelope, Sample};
-const Effects = {Chorus, Delay, Filter: Filter$1, Reverb, FFT};
+const Effects = {Chorus, Delay, Filter: Filter$1, Reverb, FFT, Saturate};
 const Voices =   {ComplexVoice, Noise, SamplePlayer, Voice};
 const Synths = {VSS30, Vincent};
 

@@ -13,7 +13,9 @@ export default class MizzyDevice {
 	}
 
 	NoteOff (MidiEvent) {
-		this.voices[MidiEvent.value].off(MidiEvent);
+		if(this.voices[MidiEvent.value] != undefined) {
+			this.voices[MidiEvent.value].off(MidiEvent);
+		}
 	}
 
 	onCC (MidiEvent) {

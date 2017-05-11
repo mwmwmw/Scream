@@ -75,7 +75,7 @@ gulp.task("bundle:global", function (done) {
 
 gulp.task("watch", function () {
   // only rebundle the global module for testing
-  gulp.watch(paths.sourceFiles, gulp.series("bundle:global"));
+  gulp.watch(paths.sourceFiles, gulp.series("bundle:global","update-example"));
 });
 
 gulp.task("karma", function (done) {

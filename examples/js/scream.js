@@ -78,12 +78,10 @@ var AmpEnvelope = function () {
 		this.partials = [];
 		this.velocity = 0;
 		this.gain = gain;
-		this.envelope = {
-			a: 0,
-			d: 0.0001,
-			s: this.gain,
-			r: 0.0001
-		};
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	createClass(AmpEnvelope, [{
@@ -119,24 +117,24 @@ var AmpEnvelope = function () {
 	}, {
 		key: "attack",
 		set: function set$$1(value) {
-			this.envelope.a = value;
+			this._attack = value;
 		},
 		get: function get$$1() {
-			return this.envelope.a;
+			return this._attack;
 		}
 	}, {
 		key: "decay",
 		set: function set$$1(value) {
-			this.envelope.d = value;
+			this._decay = value;
 		},
 		get: function get$$1() {
-			return this.envelope.d;
+			return this._decay;
 		}
 	}, {
 		key: "sustain",
 		set: function set$$1(value) {
 			this.gain = value;
-			this.envelope.s = value;
+			this._sustain;
 		},
 		get: function get$$1() {
 			return this.gain;
@@ -144,10 +142,10 @@ var AmpEnvelope = function () {
 	}, {
 		key: "release",
 		set: function set$$1(value) {
-			this.envelope.r = value;
+			this._release = value;
 		},
 		get: function get$$1() {
-			return this.envelope.r;
+			return this._release;
 		}
 	}]);
 	return AmpEnvelope;
@@ -474,8 +472,6 @@ var FFT = function (_Effect) {
 	createClass(FFT, [{
 		key: "setup",
 		value: function setup() {
-			var _this2 = this;
-
 			this.canvas = document.createElement("canvas");
 			this.canvas.setAttribute("id", "fft");
 			this.ctx = this.canvas.getContext("2d");
@@ -487,14 +483,11 @@ var FFT = function (_Effect) {
 			this.effect.minDecibels = -120;
 			this.effect.smoothingTimeConstant = 0.9;
 			this.effect.connect(this.output);
-			window.requestAnimationFrame(function () {
-				_this2.draw();
-			});
 		}
 	}, {
 		key: "draw",
 		value: function draw() {
-			var _this3 = this;
+			var _this2 = this;
 
 			var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
 			this.effect.getByteFrequencyData(myDataArray);
@@ -515,7 +508,7 @@ var FFT = function (_Effect) {
 			}
 
 			window.requestAnimationFrame(function () {
-				_this3.draw();
+				_this2.draw();
 			});
 		}
 	}, {
@@ -580,6 +573,38 @@ var Voice = function () {
 		key: "connect",
 		value: function connect(destination) {
 			this.output.connect(destination);
+		}
+	}, {
+		key: "attack",
+		set: function set$$1(value) {
+			this.ampEnvelope.attack = value;
+		},
+		get: function get$$1() {
+			return this.ampEnvelope.attack;
+		}
+	}, {
+		key: "decay",
+		set: function set$$1(value) {
+			this.ampEnvelope.decay = value;
+		},
+		get: function get$$1() {
+			return this.ampEnvelope.decay;
+		}
+	}, {
+		key: "sustain",
+		set: function set$$1(value) {
+			this.ampEnvelope.sustain = value;
+		},
+		get: function get$$1() {
+			return this.ampEnvelope.sustain;
+		}
+	}, {
+		key: "release",
+		set: function set$$1(value) {
+			this.ampEnvelope.release = value;
+		},
+		get: function get$$1() {
+			return this.ampEnvelope.release;
 		}
 	}]);
 	return Voice;
@@ -660,6 +685,10 @@ var Reverb = function (_Effect) {
 			this.effect = this.context.createConvolver();
 
 			this.reverbTime = 1;
+
+			this.attack = 0;
+			this.decay = 0.2;
+			this.release = 0.2;
 
 			this.wet = this.context.createGain();
 			this.wet.gain.value = 1;
@@ -890,7 +919,10 @@ var SamplePlayer = function (_Voice) {
 
 		_this.buffer = _this.context.createBufferSource(buffer);
 		_this.buffer.buffer = buffer;
+		_this.length = _this.buffer.buffer.duration;
 		_this.loop = loop;
+		// this.buffer.loopStart = 0;
+		// this.buffer.loopEnd = 0;
 		_this.sampleTuneFrequency = sampleTuneFrequency;
 		return _this;
 	}
@@ -898,10 +930,9 @@ var SamplePlayer = function (_Voice) {
 	createClass(SamplePlayer, [{
 		key: "init",
 		value: function init() {
-			var osc = this.buffer;
-			osc.connect(this.ampEnvelope.output);
-			osc.loop = this.loop;
-			this.partials.push(osc);
+			this.buffer.connect(this.ampEnvelope.output);
+			this.buffer.loop = this.loop;
+			this.partials.push(this.buffer);
 		}
 	}, {
 		key: "on",
@@ -915,6 +946,16 @@ var SamplePlayer = function (_Voice) {
 				osc.playbackRate.value = frequency / _this2.sampleTuneFrequency;
 			});
 			this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
+		}
+	}, {
+		key: "loopStart",
+		set: function set$$1(value) {
+			this.buffer.loopStart = this.length * value;
+		}
+	}, {
+		key: "loopEnd",
+		set: function set$$1(value) {
+			this.buffer.loopEnd = this.length * value;
 		}
 	}]);
 	return SamplePlayer;
@@ -930,6 +971,10 @@ var MizzyDevice = function () {
 		this.voices = [];
 		this.effects = [];
 		this.effectInput = this.output;
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	createClass(MizzyDevice, [{
@@ -972,6 +1017,18 @@ var MizzyDevice = function () {
 		key: "disconnect",
 		value: function disconnect(destination) {
 			this.output.disconnect(destination);
+		}
+	}, {
+		key: "setVoiceValues",
+		value: function setVoiceValues() {
+			var _this = this;
+
+			this.voices.forEach(function (voice) {
+				voice.attack = _this._attack;
+				voice.decay = _this._decay;
+				voice.sustain = _this._sustain;
+				voice.release = _this._release;
+			});
 		}
 	}]);
 	return MizzyDevice;
@@ -1032,6 +1089,8 @@ var VSS30 = function (_MizzyDevice) {
 
 		_this.sample = new Sample(_this.context);
 		_this.recording = false;
+		_this._loopStart = 0;
+		_this._loopEnd = 0;
 		return _this;
 	}
 
@@ -1067,9 +1126,82 @@ var VSS30 = function (_MizzyDevice) {
 		value: function NoteOn(MidiEvent) {
 			var voice = new SamplePlayer(this.context, this.sample.buffer, true);
 			voice.init();
+			voice.attack = this.attack;
+			voice.decay = this.decay;
+			voice.sustain = this.sustain;
+			voice.release = this.release;
+			voice.loopStart = this.loopStart;
 			voice.connect(this.effectInput);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;
+		}
+	}, {
+		key: "setVoiceValues",
+		value: function setVoiceValues() {
+			var _this3 = this;
+
+			this.voices.forEach(function (voice) {
+				voice.attack = _this3._attack;
+				voice.decay = _this3._decay;
+				voice.sustain = _this3._sustain;
+				voice.release = _this3._release;
+				voice.loopStart = _this3._loopStart;
+				voice.loopEnd = _this3._loopEnd;
+			});
+		}
+	}, {
+		key: "loopStart",
+		set: function set$$1(value) {
+			this._loopStart = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._loopStart;
+		}
+	}, {
+		key: "loopEnd",
+		set: function set$$1(value) {
+			this._loopEnd = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._loopEnd;
+		}
+	}, {
+		key: "attack",
+		set: function set$$1(value) {
+			this._attack = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._attack;
+		}
+	}, {
+		key: "decay",
+		set: function set$$1(value) {
+			this._decay = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._decay;
+		}
+	}, {
+		key: "sustain",
+		set: function set$$1(value) {
+			this._sustain = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._sustain;
+		}
+	}, {
+		key: "release",
+		set: function set$$1(value) {
+			this._release = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._release;
 		}
 	}]);
 	return VSS30;

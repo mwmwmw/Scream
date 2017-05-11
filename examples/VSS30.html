@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+<script src="js/mizzy.js" type="application/javascript"></script>
+<script src="js/scream.js" type="application/javascript"></script>
+<script>
+	var Audio = new (window.AudioContext || window.webkitAudioContext)();
+
+	var vssConnected = true;
+	var vss30 = new Scream.Synths.VSS30(Audio);
+        vss30.addEffect(Scream.Effects.Filter);
+        vss30.addEffect(Scream.Effects.Reverb);
+        vss30.addEffect(Scream.Effects.Delay);
+	    vss30.connectEffects();
+
+
+
+
+	var fft = new Scream.Effects.FFT(Audio);
+	fft.connect(Audio.destination);
+    fft.draw();
+	vss30.connect(fft.input);
+
+	var m = new Mizzy();
+	m.initialize().then(() => {
+		m.bindToAllInputs();
+		m.bindKeyboard();
+		m.keyToggle((e) => {
+			//console.log(e);
+			vss30.NoteOn(e);
+		}, (e) => {
+			vss30.NoteOff(e);
+		});
+
+		m.onCC(1, (e) => {
+            vss30.decay = e.ratio*2;
+			vss30.release = e.ratio*2;
+		});
+		m.onCC(2, (e) => {
+
+            vss30.loopStart = e.ratio;
+
+			console.log(vss30.loopStart);
+		});
+	});
+
+	window.addEventListener("keyup", (e) => {
+		switch (e.keyCode) {
+			case 192:
+				vss30.stopRecording();
+				break;
+		}
+	});
+
+	window.addEventListener("keydown", (e) => {
+		switch (e.keyCode) {
+			case 192:
+				if (vssConnected) {
+					vss30.record();
+				}
+				break;
+		}
+	});
+
+	window.addEventListener("mousemove", (e) => {
+		var x = Math.round((e.pageX / window.innerWidth) * 127);
+		var y = Math.round((e.pageY / window.innerHeight) * 127);
+		var xmessage = Mizzy.Generate.CCEvent(1, x);
+		m.sendMidiMessage(xmessage);
+		var ymessage = Mizzy.Generate.CCEvent(2, y);
+		m.sendMidiMessage(ymessage);
+	});
+
+
+	var sequence = [];
+	sequence[0] = Mizzy.Generate.NoteOn(60, 127);
+	sequence[1] = Mizzy.Generate.NoteOff(60, 127);
+	sequence[4] = Mizzy.Generate.NoteOn(66, 127);
+	sequence[5] = Mizzy.Generate.NoteOff(66, 127);
+	sequence[8] = Mizzy.Generate.NoteOn(68, 127);
+	sequence[9] = Mizzy.Generate.NoteOff(68, 127);
+	sequence[12] = Mizzy.Generate.NoteOn(54, 127);
+	sequence[13] = Mizzy.Generate.NoteOff(54, 127);
+
+	function processTick (loopIndex) {
+		//console.log(sequence[loopIndex], loopIndex);
+		if(sequence[loopIndex] != undefined) {
+			var message = sequence[loopIndex];
+			var event = Mizzy.Generate.MidiEvent(message, "C");
+			m.sendMidiMessage(event);
+		}
+	}
+
+
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+	m.clock.on("stop", ()=> m.panic());
+
+	m.clock.play();
+
+
+	var CanvasContainer = document.createElement("div");
+	document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
+	fft.addToElement(CanvasContainer);
+</script>
+</body>
+</html>

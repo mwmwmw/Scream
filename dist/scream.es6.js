@@ -6,12 +6,10 @@ class AmpEnvelope {
 		this.partials = [];
 		this.velocity = 0;
 		this.gain = gain;
-		this.envelope = {
-			a: 0,
-			d: 0.0001,
-			s: this.gain,
-			r: 0.0001
-		};
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	on (velocity) {
@@ -36,24 +34,24 @@ class AmpEnvelope {
 	}
 
 	set attack (value) {
-		this.envelope.a = value;
+		this._attack = value;
 	}
 
 	get attack () {
-		return this.envelope.a;
+		return this._attack
 	}
 
 	set decay (value) {
-		this.envelope.d = value;
+		this._decay = value;
 	}
 
 	get decay () {
-		return this.envelope.d;
+		return this._decay;
 	}
 
 	set sustain (value) {
 		this.gain = value;
-		this.envelope.s = value;
+		this._sustain;
 	}
 
 	get sustain () {
@@ -61,11 +59,11 @@ class AmpEnvelope {
 	}
 
 	set release (value) {
-		this.envelope.r = value;
+		this._release = value;
 	}
 
 	get release () {
-		return this.envelope.r;
+		return this._release;
 	}
 
 	connect (destination) {
@@ -350,9 +348,6 @@ class FFT extends Effect{
 		this.effect.minDecibels = -120;
 		this.effect.smoothingTimeConstant = 0.9;
 		this.effect.connect(this.output);
-		window.requestAnimationFrame(() => {
-			this.draw();
-		});
 	}
 
 	draw () {
@@ -430,6 +425,39 @@ class Voice {
 	connect(destination) {
 		this.output.connect(destination);
 	}
+
+	set attack (value) {
+		this.ampEnvelope.attack  = value;
+	}
+
+	get attack () {
+		return this.ampEnvelope.attack;
+	}
+
+	set decay (value) {
+		this.ampEnvelope.decay  = value;
+	}
+
+	get decay () {
+		return this.ampEnvelope.decay;
+	}
+
+	set sustain (value) {
+		this.ampEnvelope.sustain = value;
+	}
+
+	get sustain () {
+		return this.ampEnvelope.sustain;
+	}
+
+	set release (value) {
+		this.ampEnvelope.release = value;
+	}
+
+	get release () {
+		return this.ampEnvelope.release;
+	}
+
 }
 
 class Noise extends Voice{
@@ -487,6 +515,10 @@ class Reverb extends Effect {
 		this.effect = this.context.createConvolver();
 
 		this.reverbTime = 1;
+
+		this.attack = 0;
+		this.decay = 0.2;
+		this.release = 0.2;
 
 		this.wet = this.context.createGain();
 		this.wet.gain.value = 1;
@@ -676,15 +708,17 @@ class SamplePlayer extends Voice {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
+		this.length = this.buffer.buffer.duration;
 		this.loop = loop;
+		// this.buffer.loopStart = 0;
+		// this.buffer.loopEnd = 0;
 		this.sampleTuneFrequency = sampleTuneFrequency;
 	}
 
 	init () {
-		let osc = this.buffer;
-		osc.connect(this.ampEnvelope.output);
-		osc.loop = this.loop;
-		this.partials.push(osc);
+		this.buffer.connect(this.ampEnvelope.output);
+		this.buffer.loop = this.loop;
+		this.partials.push(this.buffer);
 
 	}
 
@@ -698,6 +732,14 @@ class SamplePlayer extends Voice {
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}
 
+	set loopStart(value) {
+		this.buffer.loopStart = this.length * value;
+	}
+
+	set loopEnd(value) {
+		this.buffer.loopEnd = this.length * value;
+	}
+
 }
 
 class MizzyDevice {
@@ -708,6 +750,10 @@ class MizzyDevice {
 		this.voices = [];
 		this.effects = [];
 		this.effectInput = this.output;
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	NoteOn(MidiEvent) {
@@ -744,6 +790,15 @@ class MizzyDevice {
 	}
 	disconnect (destination) {
 		this.output.disconnect(destination);
+	}
+
+	setVoiceValues() {
+		this.voices.forEach((voice)=>{
+			voice.attack = this._attack;
+			voice.decay = this._decay;
+			voice.sustain = this._sustain;
+			voice.release = this._release;
+		});
 	}
 }
 
@@ -785,6 +840,8 @@ class VSS30 extends MizzyDevice {
 		super(context);
 		this.sample = new Sample(this.context);
 		this.recording = false;
+		this._loopStart = 0;
+		this._loopEnd = 0;
 	}
 
 	record(timeout = null) {
@@ -809,9 +866,79 @@ class VSS30 extends MizzyDevice {
 	NoteOn (MidiEvent) {
 		let voice = new SamplePlayer(this.context, this.sample.buffer, true);
 		voice.init();
+		voice.attack = this.attack;
+		voice.decay = this.decay;
+		voice.sustain = this.sustain;
+		voice.release = this.release;
+		voice.loopStart = this.loopStart;
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;
+	}
+
+	set loopStart(value) {
+		this._loopStart = value;
+		this.setVoiceValues();
+	}
+
+	get loopStart () {
+		return this._loopStart;
+	}
+
+	set loopEnd(value) {
+		this._loopEnd = value;
+		this.setVoiceValues();
+	}
+
+	get loopEnd () {
+		return this._loopEnd;
+	}
+
+	set attack (value) {
+		this._attack = value;
+		this.setVoiceValues();
+	}
+
+	get attack () {
+		return this._attack;
+	}
+
+	set decay (value) {
+		this._decay  = value;
+		this.setVoiceValues();
+	}
+
+	get decay () {
+		return this._decay;
+	}
+
+	set sustain (value) {
+		this._sustain = value;
+		this.setVoiceValues();
+	}
+
+	get sustain () {
+		return this._sustain;
+	}
+
+	set release (value) {
+		this._release = value;
+		this.setVoiceValues();
+	}
+
+	get release () {
+		return this._release;
+	}
+
+	setVoiceValues() {
+		this.voices.forEach((voice)=>{
+			voice.attack = this._attack;
+			voice.decay = this._decay;
+			voice.sustain = this._sustain;
+			voice.release = this._release;
+			voice.loopStart = this._loopStart;
+			voice.loopEnd = this._loopEnd;
+		});
 	}
 
 }

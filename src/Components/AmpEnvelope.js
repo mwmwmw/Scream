@@ -6,12 +6,10 @@ export default class AmpEnvelope {
 		this.partials = [];
 		this.velocity = 0;
 		this.gain = gain;
-		this.envelope = {
-			a: 0,
-			d: 0.0001,
-			s: this.gain,
-			r: 0.0001
-		};
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	on (velocity) {
@@ -36,24 +34,24 @@ export default class AmpEnvelope {
 	}
 
 	set attack (value) {
-		this.envelope.a = value;
+		this._attack = value;
 	}
 
 	get attack () {
-		return this.envelope.a;
+		return this._attack
 	}
 
 	set decay (value) {
-		this.envelope.d = value;
+		this._decay = value;
 	}
 
 	get decay () {
-		return this.envelope.d;
+		return this._decay;
 	}
 
 	set sustain (value) {
 		this.gain = value;
-		this.envelope.s = value;
+		this._sustain;
 	}
 
 	get sustain () {
@@ -61,11 +59,11 @@ export default class AmpEnvelope {
 	}
 
 	set release (value) {
-		this.envelope.r = value;
+		this._release = value;
 	}
 
 	get release () {
-		return this.envelope.r;
+		return this._release;
 	}
 
 	connect (destination) {

@@ -7,15 +7,17 @@ export default class SamplePlayer extends Voice {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
+		this.length = this.buffer.buffer.duration;
 		this.loop = loop;
+		// this.buffer.loopStart = 0;
+		// this.buffer.loopEnd = 0;
 		this.sampleTuneFrequency = sampleTuneFrequency;
 	}
 
 	init () {
-		let osc = this.buffer;
-		osc.connect(this.ampEnvelope.output);
-		osc.loop = this.loop;
-		this.partials.push(osc);
+		this.buffer.connect(this.ampEnvelope.output);
+		this.buffer.loop = this.loop;
+		this.partials.push(this.buffer);
 
 	}
 
@@ -27,6 +29,14 @@ export default class SamplePlayer extends Voice {
 			osc.playbackRate.value = frequency / this.sampleTuneFrequency;
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
+	}
+
+	set loopStart(value) {
+		this.buffer.loopStart = this.length * value;
+	}
+
+	set loopEnd(value) {
+		this.buffer.loopEnd = this.length * value;
 	}
 
 }

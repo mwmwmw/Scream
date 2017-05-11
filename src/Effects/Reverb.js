@@ -14,6 +14,10 @@ export default class Reverb extends Effect {
 
 		this.reverbTime = 1;
 
+		this.attack = 0;
+		this.decay = 0.2;
+		this.release = 0.2;
+
 		this.wet = this.context.createGain();
 		this.wet.gain.value = 1;
 		this.dry = this.context.createGain();

@@ -39,4 +39,37 @@ export default class Voice {
 	connect(destination) {
 		this.output.connect(destination);
 	}
+
+	set attack (value) {
+		this.ampEnvelope.attack  = value;
+	}
+
+	get attack () {
+		return this.ampEnvelope.attack;
+	}
+
+	set decay (value) {
+		this.ampEnvelope.decay  = value;
+	}
+
+	get decay () {
+		return this.ampEnvelope.decay;
+	}
+
+	set sustain (value) {
+		this.ampEnvelope.sustain = value;
+	}
+
+	get sustain () {
+		return this.ampEnvelope.sustain;
+	}
+
+	set release (value) {
+		this.ampEnvelope.release = value;
+	}
+
+	get release () {
+		return this.ampEnvelope.release;
+	}
+
 }

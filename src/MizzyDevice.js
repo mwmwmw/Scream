@@ -6,6 +6,10 @@ export default class MizzyDevice {
 		this.voices = [];
 		this.effects = [];
 		this.effectInput = this.output;
+		this._attack = 0;
+		this._decay = 0.001;
+		this._sustain = this.output.gain.value;
+		this._release = 0.001;
 	}
 
 	NoteOn(MidiEvent) {
@@ -42,5 +46,14 @@ export default class MizzyDevice {
 	}
 	disconnect (destination) {
 		this.output.disconnect(destination);
+	}
+
+	setVoiceValues() {
+		this.voices.forEach((voice)=>{
+			voice.attack = this._attack;
+			voice.decay = this._decay;
+			voice.sustain = this._sustain;
+			voice.release = this._release;
+		});
 	}
 }

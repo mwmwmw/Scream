@@ -23,10 +23,10 @@
 
 	var vssConnected = true;
 	var vss30 = new Scream.Synths.VSS30(Audio);
-        vss30.addEffect(Scream.Effects.Filter);
-        vss30.addEffect(Scream.Effects.Reverb);
-        vss30.addEffect(Scream.Effects.Delay);
-	    vss30.connectEffects();
+       // vss30.addEffect(Scream.Effects.Filter);
+       // vss30.addEffect(Scream.Effects.Reverb);
+       // vss30.addEffect(Scream.Effects.Delay);
+	  //  vss30.connectEffects();
 
 
 
@@ -48,8 +48,11 @@
 		});
 
 		m.onCC(1, (e) => {
-            vss30.decay = e.ratio*2;
-			vss30.release = e.ratio*2;
+           // vss30.decay = e.ratio*2;
+		//	vss30.release = e.ratio*2;
+
+			vss30.loopLength = e.ratio;
+
 		});
 		m.onCC(2, (e) => {
 

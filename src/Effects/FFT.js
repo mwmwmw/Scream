@@ -17,9 +17,6 @@ export default class FFT extends Effect{
 		this.effect.minDecibels = -120;
 		this.effect.smoothingTimeConstant = 0.9;
 		this.effect.connect(this.output);
-		window.requestAnimationFrame(() => {
-			this.draw();
-		});
 	}
 
 	draw () {

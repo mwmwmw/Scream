@@ -920,6 +920,7 @@ var SamplePlayer = function (_Voice) {
 		_this.buffer = _this.context.createBufferSource(buffer);
 		_this.buffer.buffer = buffer;
 		_this.length = _this.buffer.buffer.duration;
+		_this._loopLength = _this.length;
 		_this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
@@ -950,12 +951,17 @@ var SamplePlayer = function (_Voice) {
 	}, {
 		key: "loopStart",
 		set: function set$$1(value) {
-			this.buffer.loopStart = this.length * value;
+			this.buffer.loopStart = this.buffer.buffer.duration * value;
+			this.buffer.loopEnd = this.buffer.loopStart + this.loopLength;
 		}
 	}, {
-		key: "loopEnd",
+		key: "loopLength",
 		set: function set$$1(value) {
-			this.buffer.loopEnd = this.length * value;
+			this._loopLength = value;
+			this.buffer.loopEnd = this.buffer.loopStart + this._loopLength;
+		},
+		get: function get$$1() {
+			return this._loopLength;
 		}
 	}]);
 	return SamplePlayer;
@@ -1091,6 +1097,7 @@ var VSS30 = function (_MizzyDevice) {
 		_this.recording = false;
 		_this._loopStart = 0;
 		_this._loopEnd = 0;
+		_this._loopLength = 1;
 		return _this;
 	}
 
@@ -1126,11 +1133,7 @@ var VSS30 = function (_MizzyDevice) {
 		value: function NoteOn(MidiEvent) {
 			var voice = new SamplePlayer(this.context, this.sample.buffer, true);
 			voice.init();
-			voice.attack = this.attack;
-			voice.decay = this.decay;
-			voice.sustain = this.sustain;
-			voice.release = this.release;
-			voice.loopStart = this.loopStart;
+			this.setVoiceValues();
 			voice.connect(this.effectInput);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;
@@ -1146,7 +1149,8 @@ var VSS30 = function (_MizzyDevice) {
 				voice.sustain = _this3._sustain;
 				voice.release = _this3._release;
 				voice.loopStart = _this3._loopStart;
-				voice.loopEnd = _this3._loopEnd;
+				//voice.loopEnd = this._loopEnd;
+				voice.loopLength = _this3._loopLength;
 			});
 		}
 	}, {
@@ -1166,6 +1170,15 @@ var VSS30 = function (_MizzyDevice) {
 		},
 		get: function get$$1() {
 			return this._loopEnd;
+		}
+	}, {
+		key: "loopLength",
+		set: function set$$1(value) {
+			this._loopLength = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._loopLength;
 		}
 	}, {
 		key: "attack",

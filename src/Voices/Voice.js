@@ -1,11 +1,11 @@
 import AmpEnvelope from "../Components/AmpEnvelope";
 
 export default class Voice {
-	constructor(context, type ="sawtooth") {
+	constructor(context, type ="sawtooth", gain = 0.1) {
 		this.context = context;
 		this.type = type;
 		this.value = -1;
-		this.gain = 0.1;
+		this.gain = gain;
 		this.output = this.context.createGain();
 		this.partials = [];
 		this.output.gain.value = this.gain;

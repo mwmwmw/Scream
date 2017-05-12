@@ -8,6 +8,7 @@ const WINDOW_SIZE = 512;
 export default class Saturate extends Effect {
 	constructor(context) {
 		super(context);
+		this.name = "saturate";
 		this._amount = DEFAULT;
 
 		this.canvas = document.createElement("canvas");

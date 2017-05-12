@@ -1,6 +1,7 @@
 export default class Effect {
 
 	constructor (context) {
+		this.name = "effect";
 		this.context = context;
 		this.input = this.context.createGain();
 		this.effect = null;

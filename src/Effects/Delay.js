@@ -4,6 +4,7 @@ import Filter from "./Filter";
 export default class Delay extends Effect {
 	constructor (context) {
 		super(context);
+		this.name = "delay";
 	}
 
 	setup () {

@@ -3,6 +3,7 @@ import Effect from "./Effect";
 export default class FFT extends Effect{
 	constructor (context) {
 		super(context);
+		this.name = "fft";
 	}
 
 	setup () {

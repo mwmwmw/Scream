@@ -12,6 +12,9 @@
         canvas {
             width: 100vw;
             height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
@@ -31,7 +34,7 @@
 	vincent.addEffect(Scream.Effects.Reverb);
 	vincent.attack = 0;
 	vincent.decay = 0.01;
-	vincent.release = 0.00001;
+	vincent.release = 0.001;
 	vincent.connectEffects();
 
 	var fft = new Scream.Effects.FFT(Audio);
@@ -49,7 +52,6 @@
 		}, (e) => {
 			vincent.NoteOff(e);
 		});
-
 
 
 		m.onCC(0, (e) => {
@@ -86,14 +88,15 @@
 			vincent.effects[1].filter.effect.Q.value = e.ratio;
 		});
 		m.onCC(11, (e) => {
-			vincent.effects[1].feedback.gain.value = e.ratio *1.1;
+			vincent.effects[1].feedback.gain.value = e.ratio * 1.1;
 		});
-		var decayTime = setTimeout(()=>{},0);
+		var decayTime = setTimeout(() => {
+		}, 0);
 		m.onCC(12, (e) => {
 			clearTimeout(decayTime);
-			decayTime = setTimeout(()=>{
+			decayTime = setTimeout(() => {
 				vincent.effects[2].decayTime = e.ratio * 8;
-			},100);
+			}, 100);
 		});
 		m.onCC(13, (e) => {
 			vincent.effects[2].wet.gain.value = e.ratio;
@@ -102,44 +105,62 @@
 			vincent.effects[2].dry.gain.value = e.ratio;
 		});
 		m.onCC(15, (e) => {
-            m.clock.BPM = 40 + (e.ratio * 140);
-			vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM) * .5;
+			m.clock.BPM = 40 + (e.ratio * 140);
+			vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM);
 		});
-		for(let i=16; i<16+16;i++) {
-			m.onCC(i, (e)=>{
+		for (let i = 16; i < 16 + 16; i++) {
+			m.onCC(i, (e) => {
 				sequenceNote(i, e)
-            });
+			});
 		}
 	});
 
-    var sequence_length = 16;
+	var sequence_length = 16;
 
-function sequenceNote (i, midi = {value: 60}) {
-	sequence[i] = [];
-	sequence[i].push(Mizzy.Generate.NoteOn(midi.value, 127));
-	sequence[(i+1)%sequence_length-1].push(Mizzy.Generate.NoteOff(midi.value, 127));
-}
+	function sequenceNote (i, value) {
+		if (value > 0) {
+			sequence[i] = Mizzy.Generate.NoteOn(value, 127);
+		} else {
+			sequence[i] = Mizzy.Generate.NoteOff(sequence[i][1]);
+		}
+
+	}
+
+	var sequence = new Array(16);
+
+	function processTick (loopIndex) {
+		if (sequence[loopIndex] != undefined) {
+			var message = sequence[loopIndex];
+			var event = Mizzy.Generate.MidiEvent(message, "C");
+			m.sendMidiMessage(event);
+			setTimeout(() => {
+				let noteoff = Mizzy.Generate.NoteOff(message[1], 127);
+				let e = Mizzy.Generate.MidiEvent(noteoff, "C");
+				m.sendMidiMessage(e);
+			}, (60000 / m.clock.BPM) * 0.5);
+		}
+	}
+
+	sequenceNote(0, 72);
+	sequenceNote(4, 60);
+	sequenceNote(8, 68);
+	sequenceNote(12, 64);
 
 
-		var sequence = new Array(16);
-//
-//		for(let i = 0; i < sequence_length; i++) {
-//                sequence[i] =[];
-//        }
-//
-//		function processTick (loopIndex) {
-//			if(sequence[loopIndex] != undefined) {
-//	                sequence[loopIndex].forEach((message)=>{
-//		                var event = Mizzy.Generate.MidiEvent(message, "C");
-//		                m.sendMidiMessage(event);
-//                    });
-//			}
-//		}
-//
-//
-//		m.clock.on("tick", (tick) => processTick(tick.loopIndex));
-//
-//		m.clock.play();
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+
+
+	window.addEventListener("keydown", (e) => {
+		switch (e.keyCode) {
+			case 192:
+				if (m.clock.playing) {
+					m.clock.stop();
+				} else {
+					m.clock.play();
+				}
+				break;
+		}
+	});
 
 
 	var CanvasContainer = document.createElement("div");

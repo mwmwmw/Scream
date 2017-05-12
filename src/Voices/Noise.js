@@ -2,8 +2,8 @@ import Voice from "./Voice";
 
 
 export default class Noise extends Voice{
-	constructor(context, gain = 1) {
-		super(context, "none");
+	constructor(context, gain) {
+		super(context, gain);
 		this._length = 2;
 	}
 
@@ -25,12 +25,13 @@ export default class Noise extends Voice{
 		buffer.copyToChannel(lBuffer,0);
 		buffer.copyToChannel(rBuffer,1);
 
-		let osc = this.context.createBufferSource({
-			buffer: buffer,
-			loop: true,
-			loopStart: 0,
-			loopEnd: 2
-		});
+		let osc = this.context.createBufferSource();
+			osc.buffer = buffer;
+			osc.loop = true;
+			osc.loopStart = 0;
+			osc.loopEnd = 2;
+
+
 
 			osc.start(this.context.currentTime);
 			osc.connect(this.ampEnvelope.output);

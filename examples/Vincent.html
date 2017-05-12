@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+<script src="js/mizzy.js" type="application/javascript"></script>
+<script src="js/scream.js" type="application/javascript"></script>
+<script>
+
+	console.log(Scream);
+
+	var Audio = new (window.AudioContext || window.webkitAudioContext)();
+
+
+	var vincent = new Scream.Synths.Vincent(Audio, 16, "sawtooth", 60);
+	vincent.addEffect(Scream.Effects.Filter);
+	vincent.addEffect(Scream.Effects.Delay);
+	vincent.addEffect(Scream.Effects.Reverb);
+	vincent.attack = 0;
+	vincent.decay = 0.01;
+	vincent.release = 0.00001;
+	vincent.connectEffects();
+
+	var fft = new Scream.Effects.FFT(Audio);
+	fft.connect(Audio.destination);
+	fft.draw();
+
+	vincent.connect(fft.input);
+
+	var m = new Mizzy();
+	m.initialize().then(() => {
+		m.bindToAllInputs();
+		m.bindKeyboard();
+		m.keyToggle((e) => {
+			vincent.NoteOn(e);
+		}, (e) => {
+			vincent.NoteOff(e);
+		});
+
+
+
+		m.onCC(0, (e) => {
+			vincent.output.gain.value = e.ratio;
+		});
+		m.onCC(1, (e) => {
+			vincent.effects[0].effect.frequency.value = 50 + (e.ratio * 8000)
+		});
+		m.onCC(2, (e) => {
+			vincent.wideness = e.ratio * 300;
+		});
+		m.onCC(3, (e) => {
+
+		});
+		m.onCC(4, (e) => {
+			vincent.effects[0].effect.frequency.value = 40 + (e.ratio * 7600);
+		});
+		m.onCC(5, (e) => {
+			vincent.effects[0].effect.Q.value = 100 * e.ratio;
+		});
+		m.onCC(6, (e) => {
+
+		});
+		m.onCC(7, (e) => {
+
+		});
+		m.onCC(8, (e) => {
+			vincent.effects[1].effect.delayTime.value = e.ratio;
+		});
+		m.onCC(9, (e) => {
+			vincent.effects[1].filter.effect.frequency.value = 160 + e.ratio * 1500;
+		});
+		m.onCC(10, (e) => {
+			vincent.effects[1].filter.effect.Q.value = e.ratio;
+		});
+		m.onCC(11, (e) => {
+			vincent.effects[1].feedback.gain.value = e.ratio *1.1;
+		});
+		var decayTime = setTimeout(()=>{},0);
+		m.onCC(12, (e) => {
+			clearTimeout(decayTime);
+			decayTime = setTimeout(()=>{
+				vincent.effects[2].decayTime = e.ratio * 8;
+			},100);
+		});
+		m.onCC(13, (e) => {
+			vincent.effects[2].wet.gain.value = e.ratio;
+		});
+		m.onCC(14, (e) => {
+			vincent.effects[2].dry.gain.value = e.ratio;
+		});
+		m.onCC(15, (e) => {
+            m.clock.BPM = 40 + (e.ratio * 140);
+			vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM) * .5;
+		});
+		for(let i=16; i<16+16;i++) {
+			m.onCC(i, (e)=>{
+				sequenceNote(i, e)
+            });
+		}
+	});
+
+    var sequence_length = 16;
+
+function sequenceNote (i, midi = {value: 60}) {
+	sequence[i] = [];
+	sequence[i].push(Mizzy.Generate.NoteOn(midi.value, 127));
+	sequence[(i+1)%sequence_length-1].push(Mizzy.Generate.NoteOff(midi.value, 127));
+}
+
+
+		var sequence = new Array(16);
+//
+//		for(let i = 0; i < sequence_length; i++) {
+//                sequence[i] =[];
+//        }
+//
+//		function processTick (loopIndex) {
+//			if(sequence[loopIndex] != undefined) {
+//	                sequence[loopIndex].forEach((message)=>{
+//		                var event = Mizzy.Generate.MidiEvent(message, "C");
+//		                m.sendMidiMessage(event);
+//                    });
+//			}
+//		}
+//
+//
+//		m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+//
+//		m.clock.play();
+
+
+	var CanvasContainer = document.createElement("div");
+	document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
+	fft.addToElement(CanvasContainer);
+</script>
+</body>
+</html>

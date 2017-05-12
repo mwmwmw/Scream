@@ -330,6 +330,7 @@ var Effect = function () {
 	function Effect(context) {
 		classCallCheck(this, Effect);
 
+		this.name = "effect";
 		this.context = context;
 		this.input = this.context.createGain();
 		this.effect = null;
@@ -363,7 +364,11 @@ var Chorus = function (_Effect) {
 
 	function Chorus() {
 		classCallCheck(this, Chorus);
-		return possibleConstructorReturn(this, (Chorus.__proto__ || Object.getPrototypeOf(Chorus)).call(this));
+
+		var _this = possibleConstructorReturn(this, (Chorus.__proto__ || Object.getPrototypeOf(Chorus)).call(this));
+
+		_this.name = "chorus";
+		return _this;
 	}
 
 	return Chorus;
@@ -380,6 +385,7 @@ var Filter$1 = function (_Effect) {
 
 		var _this = possibleConstructorReturn(this, (Filter.__proto__ || Object.getPrototypeOf(Filter)).call(this, context));
 
+		_this.name = "filter";
 		_this.effect.frequency.value = cutoff;
 		_this.effect.Q.value = resonance;
 		_this.effect.type = type;
@@ -401,7 +407,11 @@ var Delay = function (_Effect) {
 
 	function Delay(context) {
 		classCallCheck(this, Delay);
-		return possibleConstructorReturn(this, (Delay.__proto__ || Object.getPrototypeOf(Delay)).call(this, context));
+
+		var _this = possibleConstructorReturn(this, (Delay.__proto__ || Object.getPrototypeOf(Delay)).call(this, context));
+
+		_this.name = "delay";
+		return _this;
 	}
 
 	createClass(Delay, [{
@@ -467,7 +477,11 @@ var FFT = function (_Effect) {
 
 	function FFT(context) {
 		classCallCheck(this, FFT);
-		return possibleConstructorReturn(this, (FFT.__proto__ || Object.getPrototypeOf(FFT)).call(this, context));
+
+		var _this = possibleConstructorReturn(this, (FFT.__proto__ || Object.getPrototypeOf(FFT)).call(this, context));
+
+		_this.name = "fft";
+		return _this;
 	}
 
 	createClass(FFT, [{
@@ -674,9 +688,10 @@ var Reverb = function (_Effect) {
 
 		var _this = possibleConstructorReturn(this, (Reverb.__proto__ || Object.getPrototypeOf(Reverb)).call(this, context));
 
+		_this.name = "reverb";
 		_this.attack = 0;
 		_this.decay = 0.2;
-		_this.release = 0.2;
+		_this.release = 0.8;
 		return _this;
 	}
 
@@ -689,7 +704,7 @@ var Reverb = function (_Effect) {
 
 			this.attack = 0;
 			this.decay = 0.2;
-			this.release = 0.2;
+			this.release = 0.8;
 
 			this.wet = this.context.createGain();
 			this.wet.gain.value = 1;
@@ -754,6 +769,7 @@ var Saturate = function (_Effect) {
 
 		var _this = possibleConstructorReturn(this, (Saturate.__proto__ || Object.getPrototypeOf(Saturate)).call(this, context));
 
+		_this.name = "saturate";
 		_this._amount = DEFAULT;
 
 		_this.canvas = document.createElement("canvas");
@@ -921,6 +937,7 @@ var SamplePlayer = function (_Voice) {
 		_this.buffer = _this.context.createBufferSource(buffer);
 		_this.buffer.buffer = buffer;
 		_this.length = _this.buffer.buffer.duration;
+		_this._loopLength = _this.length;
 		_this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
@@ -951,12 +968,17 @@ var SamplePlayer = function (_Voice) {
 	}, {
 		key: "loopStart",
 		set: function set$$1(value) {
-			this.buffer.loopStart = this.length * value;
+			this.buffer.loopStart = this.buffer.buffer.duration * value;
+			this.buffer.loopEnd = this.buffer.loopStart + this.loopLength;
 		}
 	}, {
-		key: "loopEnd",
+		key: "loopLength",
 		set: function set$$1(value) {
-			this.buffer.loopEnd = this.length * value;
+			this._loopLength = value;
+			this.buffer.loopEnd = this.buffer.loopStart + this._loopLength;
+		},
+		get: function get$$1() {
+			return this._loopLength;
 		}
 	}]);
 	return SamplePlayer;
@@ -1001,8 +1023,7 @@ var MizzyDevice = function () {
 		value: function connectEffects() {
 			this.effectInput = this.effects[0].input;
 			for (var i = this.effects.length - 1; i >= 0; i--) {
-				console.log(this.effects[i]);
-				if (i == this.effects.length - 1) {
+				if (this.effects[i].name) if (i == this.effects.length - 1) {
 					this.effects[i].connect(this.output);
 				} else {
 					this.effects[i].connect(this.effects[i + 1].input);
@@ -1092,6 +1113,7 @@ var VSS30 = function (_MizzyDevice) {
 		_this.recording = false;
 		_this._loopStart = 0;
 		_this._loopEnd = 0;
+		_this._loopLength = 1;
 		return _this;
 	}
 
@@ -1127,11 +1149,7 @@ var VSS30 = function (_MizzyDevice) {
 		value: function NoteOn(MidiEvent) {
 			var voice = new SamplePlayer(this.context, this.sample.buffer, true);
 			voice.init();
-			voice.attack = this.attack;
-			voice.decay = this.decay;
-			voice.sustain = this.sustain;
-			voice.release = this.release;
-			voice.loopStart = this.loopStart;
+			this.setVoiceValues();
 			voice.connect(this.effectInput);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;
@@ -1147,7 +1165,8 @@ var VSS30 = function (_MizzyDevice) {
 				voice.sustain = _this3._sustain;
 				voice.release = _this3._release;
 				voice.loopStart = _this3._loopStart;
-				voice.loopEnd = _this3._loopEnd;
+				//voice.loopEnd = this._loopEnd;
+				voice.loopLength = _this3._loopLength;
 			});
 		}
 	}, {
@@ -1167,6 +1186,15 @@ var VSS30 = function (_MizzyDevice) {
 		},
 		get: function get$$1() {
 			return this._loopEnd;
+		}
+	}, {
+		key: "loopLength",
+		set: function set$$1(value) {
+			this._loopLength = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._loopLength;
 		}
 	}, {
 		key: "attack",

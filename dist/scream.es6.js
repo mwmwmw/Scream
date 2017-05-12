@@ -226,6 +226,7 @@ class Sample {
 class Effect {
 
 	constructor (context) {
+		this.name = "effect";
 		this.context = context;
 		this.input = this.context.createGain();
 		this.effect = null;
@@ -252,6 +253,7 @@ class Effect {
 class Chorus extends Effect {
 	constructor () {
 		super();
+		this.name = "chorus";
 	}
 
 }
@@ -259,6 +261,7 @@ class Chorus extends Effect {
 class Filter$1 extends Effect {
 	constructor (context, type = FILTER_TYPES[0], cutoff = 1000, resonance = 0.9) {
 		super(context);
+		this.name = "filter";
 		this.effect.frequency.value = cutoff;
 		this.effect.Q.value = resonance;
 		this.effect.type = type;
@@ -274,6 +277,7 @@ class Filter$1 extends Effect {
 class Delay extends Effect {
 	constructor (context) {
 		super(context);
+		this.name = "delay";
 	}
 
 	setup () {
@@ -334,6 +338,7 @@ class Delay extends Effect {
 class FFT extends Effect{
 	constructor (context) {
 		super(context);
+		this.name = "fft";
 	}
 
 	setup () {
@@ -506,9 +511,10 @@ class Noise extends Voice{
 class Reverb extends Effect {
 	constructor (context) {
 		super(context);
+		this.name = "reverb";
 		this.attack = 0;
 		this.decay = 0.2;
-		this.release = 0.2;
+		this.release = 0.8;
 	}
 
 	setup () {
@@ -518,7 +524,7 @@ class Reverb extends Effect {
 
 		this.attack = 0;
 		this.decay = 0.2;
-		this.release = 0.2;
+		this.release = 0.8;
 
 		this.wet = this.context.createGain();
 		this.wet.gain.value = 1;
@@ -573,6 +579,7 @@ const WINDOW_SIZE = 512;
 class Saturate extends Effect {
 	constructor(context) {
 		super(context);
+		this.name = "saturate";
 		this._amount = DEFAULT;
 
 		this.canvas = document.createElement("canvas");
@@ -704,25 +711,26 @@ class ComplexVoice extends Voice {
 
 class SamplePlayer extends Voice {
 
-	constructor (context, buffer, loop = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
+	constructor(context, buffer, loop = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
 		this.length = this.buffer.buffer.duration;
+		this._loopLength = this.length;
 		this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
 		this.sampleTuneFrequency = sampleTuneFrequency;
 	}
 
-	init () {
+	init() {
 		this.buffer.connect(this.ampEnvelope.output);
 		this.buffer.loop = this.loop;
 		this.partials.push(this.buffer);
 
 	}
 
-	on (MidiEvent) {
+	on(MidiEvent) {
 		let frequency = MidiEvent.frequency;
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
@@ -733,11 +741,17 @@ class SamplePlayer extends Voice {
 	}
 
 	set loopStart(value) {
-		this.buffer.loopStart = this.length * value;
+		this.buffer.loopStart = this.buffer.buffer.duration * value;
+		this.buffer.loopEnd = this.buffer.loopStart + this.loopLength;
 	}
 
-	set loopEnd(value) {
-		this.buffer.loopEnd = this.length * value;
+	set loopLength(value) {
+		this._loopLength = value;
+		this.buffer.loopEnd = this.buffer.loopStart + this._loopLength;
+	}
+
+	get loopLength () {
+		return this._loopLength;
 	}
 
 }
@@ -777,7 +791,7 @@ class MizzyDevice {
 	connectEffects () {
 		this.effectInput = this.effects[0].input;
 		for (let i = this.effects.length - 1; i >= 0; i--) {
-			console.log(this.effects[i]);
+			if(this.effects[i].name)
 			if (i == this.effects.length - 1) {
 				this.effects[i].connect(this.output);
 			} else {
@@ -842,6 +856,7 @@ class VSS30 extends MizzyDevice {
 		this.recording = false;
 		this._loopStart = 0;
 		this._loopEnd = 0;
+		this._loopLength = 1;
 	}
 
 	record(timeout = null) {
@@ -866,11 +881,7 @@ class VSS30 extends MizzyDevice {
 	NoteOn (MidiEvent) {
 		let voice = new SamplePlayer(this.context, this.sample.buffer, true);
 		voice.init();
-		voice.attack = this.attack;
-		voice.decay = this.decay;
-		voice.sustain = this.sustain;
-		voice.release = this.release;
-		voice.loopStart = this.loopStart;
+		this.setVoiceValues();
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;
@@ -893,6 +904,16 @@ class VSS30 extends MizzyDevice {
 	get loopEnd () {
 		return this._loopEnd;
 	}
+
+	set loopLength(value) {
+		this._loopLength = value;
+		this.setVoiceValues();
+	}
+
+	get loopLength () {
+		return this._loopLength;
+	}
+
 
 	set attack (value) {
 		this._attack = value;
@@ -937,7 +958,8 @@ class VSS30 extends MizzyDevice {
 			voice.sustain = this._sustain;
 			voice.release = this._release;
 			voice.loopStart = this._loopStart;
-			voice.loopEnd = this._loopEnd;
+			//voice.loopEnd = this._loopEnd;
+			voice.loopLength = this._loopLength;
 		});
 	}
 

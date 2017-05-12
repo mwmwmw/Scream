@@ -513,7 +513,7 @@ var FFT = function (_Effect) {
 			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 			ctx.restore();
 			var i = 0;
-			var width = ctx.canvas.width / myDataArray.length;
+			var width = ctx.canvas.width / (myDataArray.length / 4);
 
 			for (var point in myDataArray) {
 				ctx.fillStyle = "rgb(100,255,255)";
@@ -999,7 +999,6 @@ var MizzyDevice = function () {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
@@ -1029,7 +1028,8 @@ var MizzyDevice = function () {
 		value: function connectEffects() {
 			this.effectInput = this.effects[0].input;
 			for (var i = this.effects.length - 1; i >= 0; i--) {
-				if (this.effects[i].name) if (i == this.effects.length - 1) {
+				console.log(this.effects[i]);
+				if (i == this.effects.length - 1) {
 					this.effects[i].connect(this.output);
 				} else {
 					this.effects[i].connect(this.effects[i + 1].input);
@@ -1242,10 +1242,75 @@ var VSS30 = function (_MizzyDevice) {
 	return VSS30;
 }(MizzyDevice);
 
+var DrumMachine = function (_MizzyDevice) {
+	inherits(DrumMachine, _MizzyDevice);
+
+	function DrumMachine(context) {
+		classCallCheck(this, DrumMachine);
+
+		var _this = possibleConstructorReturn(this, (DrumMachine.__proto__ || Object.getPrototypeOf(DrumMachine)).call(this, context));
+
+		_this.CLAP = new Sample(_this.context);
+		_this.CLAP.load("./assets/CLAP.mp3");
+
+		_this.HAT01 = new Sample(_this.context);
+		_this.HAT01.load("./assets/HAT01.mp3");
+
+		_this.HIT01 = new Sample(_this.context);
+		_this.HIT01.load("./assets/HIT01.mp3");
+
+		_this.HIT02 = new Sample(_this.context);
+		_this.HIT02.load("./assets/HIT01.mp3");
+
+		_this.KICK01 = new Sample(_this.context);
+		_this.KICK01.load("./assets/KICK01.mp3");
+
+		_this.KICK02 = new Sample(_this.context);
+		_this.KICK02.load("./assets/KICK02.mp3");
+
+		return _this;
+	}
+
+	createClass(DrumMachine, [{
+		key: "NoteOn",
+		value: function NoteOn(MidiEvent) {
+			var voice = null;
+			switch (MidiEvent.value) {
+				case 1:
+					voice = new SamplePlayer(this.context, this.KICK01.buffer, false, 8.17);
+					break;
+				case 2:
+					voice = new SamplePlayer(this.context, this.KICK02.buffer, false, 8.66);
+					break;
+				case 3:
+					voice = new SamplePlayer(this.context, this.CLAP.buffer, false, 9.177);
+					break;
+				case 4:
+					voice = new SamplePlayer(this.context, this.HIT01.buffer, false, 9.72);
+					break;
+				case 5:
+					voice = new SamplePlayer(this.context, this.HIT02.buffer, false, 10.3);
+					break;
+				case 6:
+					voice = new SamplePlayer(this.context, this.HAT01.buffer, false, 10.9);
+					break;
+			}
+			if (voice != null) {
+				voice.init();
+				this.setVoiceValues();
+				voice.connect(this.effectInput);
+				voice.on(MidiEvent);
+				this.voices[MidiEvent.value] = voice;
+			}
+		}
+	}]);
+	return DrumMachine;
+}(MizzyDevice);
+
 var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample };
 var Effects = { Chorus: Chorus, Delay: Delay, Filter: Filter$1, Reverb: Reverb, FFT: FFT, Saturate: Saturate };
 var Voices = { ComplexVoice: ComplexVoice, Noise: Noise, SamplePlayer: SamplePlayer, Voice: Voice };
-var Synths = { VSS30: VSS30, Vincent: Vincent };
+var Synths = { VSS30: VSS30, Vincent: Vincent, DrumMachine: DrumMachine };
 
 exports.Components = Components;
 exports.Effects = Effects;

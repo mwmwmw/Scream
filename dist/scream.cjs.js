@@ -514,7 +514,7 @@ var FFT = function (_Effect) {
 			ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 			ctx.restore();
 			var i = 0;
-			var width = ctx.canvas.width / myDataArray.length;
+			var width = ctx.canvas.width / (myDataArray.length / 4);
 
 			for (var point in myDataArray) {
 				ctx.fillStyle = "rgb(100,255,255)";
@@ -543,12 +543,13 @@ var FFT = function (_Effect) {
 var Voice = function () {
 	function Voice(context) {
 		var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : "sawtooth";
+		var gain = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 0.1;
 		classCallCheck(this, Voice);
 
 		this.context = context;
 		this.type = type;
 		this.value = -1;
-		this.gain = 0.1;
+		this.gain = gain;
 		this.output = this.context.createGain();
 		this.partials = [];
 		this.output.gain.value = this.gain;
@@ -628,11 +629,10 @@ var Voice = function () {
 var Noise = function (_Voice) {
 	inherits(Noise, _Voice);
 
-	function Noise(context) {
-		var gain = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
+	function Noise(context, gain) {
 		classCallCheck(this, Noise);
 
-		var _this = possibleConstructorReturn(this, (Noise.__proto__ || Object.getPrototypeOf(Noise)).call(this, context, "none"));
+		var _this = possibleConstructorReturn(this, (Noise.__proto__ || Object.getPrototypeOf(Noise)).call(this, context, gain));
 
 		_this._length = 2;
 		return _this;
@@ -651,12 +651,11 @@ var Noise = function (_Voice) {
 			buffer.copyToChannel(lBuffer, 0);
 			buffer.copyToChannel(rBuffer, 1);
 
-			var osc = this.context.createBufferSource({
-				buffer: buffer,
-				loop: true,
-				loopStart: 0,
-				loopEnd: 2
-			});
+			var osc = this.context.createBufferSource();
+			osc.buffer = buffer;
+			osc.loop = true;
+			osc.loopStart = 0;
+			osc.loopEnd = 2;
 
 			osc.start(this.context.currentTime);
 			osc.connect(this.ampEnvelope.output);
@@ -700,7 +699,7 @@ var Reverb = function (_Effect) {
 		value: function setup() {
 			this.effect = this.context.createConvolver();
 
-			this.reverbTime = 1;
+			this.reverbTime = 2;
 
 			this.attack = 0;
 			this.decay = 0.2;
@@ -712,6 +711,7 @@ var Reverb = function (_Effect) {
 			this.dry.gain.value = 1;
 
 			this.buffer = this.renderTail();
+			this.wireUp();
 		}
 	}, {
 		key: "wireUp",
@@ -729,7 +729,7 @@ var Reverb = function (_Effect) {
 			var _this2 = this;
 
 			var tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
-			var buffer = tailContext.createBufferSource();
+			//let buffer = tailContext.createBufferSource();
 			var tail = new Noise(tailContext, 1);
 			tail.init();
 			tail.connect(tailContext.destination);
@@ -739,7 +739,14 @@ var Reverb = function (_Effect) {
 			tail.on(100);
 			tail.off();
 			return tailContext.startRendering().then(function (buffer) {
+
+				// this.source = this.context.createBufferSource(buffer);
+				// this.source.buffer = buffer;
+				// this.source.start();
+				// this.source.connect(this.output);
+
 				_this2.effect.buffer = buffer;
+				console.log(buffer, _this2.effect);
 			});
 		}
 	}, {
@@ -993,7 +1000,6 @@ var MizzyDevice = function () {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
@@ -1023,7 +1029,8 @@ var MizzyDevice = function () {
 		value: function connectEffects() {
 			this.effectInput = this.effects[0].input;
 			for (var i = this.effects.length - 1; i >= 0; i--) {
-				if (this.effects[i].name) if (i == this.effects.length - 1) {
+				console.log(this.effects[i]);
+				if (i == this.effects.length - 1) {
 					this.effects[i].connect(this.output);
 				} else {
 					this.effects[i].connect(this.effects[i + 1].input);
@@ -1236,10 +1243,75 @@ var VSS30 = function (_MizzyDevice) {
 	return VSS30;
 }(MizzyDevice);
 
+var DrumMachine = function (_MizzyDevice) {
+	inherits(DrumMachine, _MizzyDevice);
+
+	function DrumMachine(context) {
+		classCallCheck(this, DrumMachine);
+
+		var _this = possibleConstructorReturn(this, (DrumMachine.__proto__ || Object.getPrototypeOf(DrumMachine)).call(this, context));
+
+		_this.CLAP = new Sample(_this.context);
+		_this.CLAP.load("./assets/CLAP.mp3");
+
+		_this.HAT01 = new Sample(_this.context);
+		_this.HAT01.load("./assets/HAT01.mp3");
+
+		_this.HIT01 = new Sample(_this.context);
+		_this.HIT01.load("./assets/HIT01.mp3");
+
+		_this.HIT02 = new Sample(_this.context);
+		_this.HIT02.load("./assets/HIT01.mp3");
+
+		_this.KICK01 = new Sample(_this.context);
+		_this.KICK01.load("./assets/KICK01.mp3");
+
+		_this.KICK02 = new Sample(_this.context);
+		_this.KICK02.load("./assets/KICK02.mp3");
+
+		return _this;
+	}
+
+	createClass(DrumMachine, [{
+		key: "NoteOn",
+		value: function NoteOn(MidiEvent) {
+			var voice = null;
+			switch (MidiEvent.value) {
+				case 1:
+					voice = new SamplePlayer(this.context, this.KICK01.buffer, false, 8.17);
+					break;
+				case 2:
+					voice = new SamplePlayer(this.context, this.KICK02.buffer, false, 8.66);
+					break;
+				case 3:
+					voice = new SamplePlayer(this.context, this.CLAP.buffer, false, 9.177);
+					break;
+				case 4:
+					voice = new SamplePlayer(this.context, this.HIT01.buffer, false, 9.72);
+					break;
+				case 5:
+					voice = new SamplePlayer(this.context, this.HIT02.buffer, false, 10.3);
+					break;
+				case 6:
+					voice = new SamplePlayer(this.context, this.HAT01.buffer, false, 10.9);
+					break;
+			}
+			if (voice != null) {
+				voice.init();
+				this.setVoiceValues();
+				voice.connect(this.effectInput);
+				voice.on(MidiEvent);
+				this.voices[MidiEvent.value] = voice;
+			}
+		}
+	}]);
+	return DrumMachine;
+}(MizzyDevice);
+
 var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample };
 var Effects = { Chorus: Chorus, Delay: Delay, Filter: Filter$1, Reverb: Reverb, FFT: FFT, Saturate: Saturate };
 var Voices = { ComplexVoice: ComplexVoice, Noise: Noise, SamplePlayer: SamplePlayer, Voice: Voice };
-var Synths = { VSS30: VSS30, Vincent: Vincent };
+var Synths = { VSS30: VSS30, Vincent: Vincent, DrumMachine: DrumMachine };
 
 exports.Components = Components;
 exports.Effects = Effects;

@@ -325,6 +325,35 @@ var Sample = function () {
 	return Sample;
 }();
 
+var SampleMap = function () {
+	function SampleMap(context, sample_map) {
+		classCallCheck(this, SampleMap);
+
+		this.context = context;
+		this.input_map = sample_map;
+		this.samples = {};
+		this.loaded = false;
+	}
+
+	createClass(SampleMap, [{
+		key: "load",
+		value: function load() {
+			var _this = this;
+
+			var sampleLoad = [];
+			this.input_map.forEach(function (sample) {
+				var newsample = new Sample(_this.context);
+				newsample.load(sample.src).then(function () {
+					_this.samples[sample.value] = Object.assign(sample, { sample: newsample });
+				});
+				sampleLoad.push(newsample);
+			});
+			return Promise.all(sampleLoad);
+		}
+	}]);
+	return SampleMap;
+}();
+
 var Effect = function () {
 	function Effect(context) {
 		classCallCheck(this, Effect);
@@ -935,7 +964,8 @@ var SamplePlayer = function (_Voice) {
 
 	function SamplePlayer(context, buffer) {
 		var loop = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : true;
-		var sampleTuneFrequency = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : BASE_SAMPLE_TUNING;
+		var tune = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : true;
+		var sampleTuneFrequency = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : BASE_SAMPLE_TUNING;
 		classCallCheck(this, SamplePlayer);
 
 		var _this = possibleConstructorReturn(this, (SamplePlayer.__proto__ || Object.getPrototypeOf(SamplePlayer)).call(this, context));
@@ -944,6 +974,7 @@ var SamplePlayer = function (_Voice) {
 		_this.buffer.buffer = buffer;
 		_this.length = _this.buffer.buffer.duration;
 		_this._loopLength = _this.length;
+		_this.tune = tune;
 		_this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
@@ -967,7 +998,9 @@ var SamplePlayer = function (_Voice) {
 			this.value = MidiEvent.value;
 			this.partials.forEach(function (osc) {
 				osc.start(_this2.context.currentTime);
-				osc.playbackRate.value = frequency / _this2.sampleTuneFrequency;
+				if (_this2.tune) {
+					osc.playbackRate.value = frequency / _this2.sampleTuneFrequency;
+				}
 			});
 			this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 		}
@@ -1243,10 +1276,38 @@ var VSS30 = function (_MizzyDevice) {
 	return VSS30;
 }(MizzyDevice);
 
-var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample };
+var DrumMachine = function (_MizzyDevice) {
+	inherits(DrumMachine, _MizzyDevice);
+
+	function DrumMachine(context, sample_map) {
+		classCallCheck(this, DrumMachine);
+
+		var _this = possibleConstructorReturn(this, (DrumMachine.__proto__ || Object.getPrototypeOf(DrumMachine)).call(this, context));
+
+		_this.map = sample_map;
+		return _this;
+	}
+
+	createClass(DrumMachine, [{
+		key: "NoteOn",
+		value: function NoteOn(MidiEvent) {
+			if (this.map.samples[MidiEvent.value] != null) {
+				var voice = new SamplePlayer(this.context, this.map.samples[MidiEvent.value].sample.buffer, false, false);
+				voice.init();
+				this.setVoiceValues();
+				voice.connect(this.effectInput);
+				voice.on(MidiEvent);
+				this.voices[MidiEvent.value] = voice;
+			}
+		}
+	}]);
+	return DrumMachine;
+}(MizzyDevice);
+
+var Components = { FilterEnvelope: Filter, AmpEnvelope: AmpEnvelope, Sample: Sample, SampleMap: SampleMap };
 var Effects = { Chorus: Chorus, Delay: Delay, Filter: Filter$1, Reverb: Reverb, FFT: FFT, Saturate: Saturate };
 var Voices = { ComplexVoice: ComplexVoice, Noise: Noise, SamplePlayer: SamplePlayer, Voice: Voice };
-var Synths = { VSS30: VSS30, Vincent: Vincent };
+var Synths = { VSS30: VSS30, Vincent: Vincent, DrumMachine: DrumMachine };
 
 exports.Components = Components;
 exports.Effects = Effects;

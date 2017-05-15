@@ -223,6 +223,26 @@ class Sample {
 
 }
 
+class SampleMap {
+	constructor (sample_map) {
+		this.input_map = sample_map;
+		this.map = {};
+		this.loaded = false;
+	}
+
+	load (sample_map = this.input_map) {
+		sample_map.forEach((sample)=>{
+			let newsample = new Sample(this.context);
+			newsample.load(sample.src).then(() => {
+				this.samples[sample.value] = Object.assign(sample, {sample:newSample});
+			});
+			sampleLoad.push(newsample);
+		});
+		return new Promise.all(sampleLoad);
+	}
+
+}
+
 class Effect {
 
 	constructor (context) {
@@ -366,7 +386,7 @@ class FFT extends Effect{
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 		ctx.restore();
 		var i = 0;
-		var width = (ctx.canvas.width / (myDataArray.length/4));
+		var width = (ctx.canvas.width / myDataArray.length);
 
 		for (var point in myDataArray) {
 			ctx.fillStyle = "rgb(100,255,255)";
@@ -719,12 +739,13 @@ class ComplexVoice extends Voice {
 
 class SamplePlayer extends Voice {
 
-	constructor(context, buffer, loop = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
+	constructor(context, buffer, loop = true, tune = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
 		this.length = this.buffer.buffer.duration;
 		this._loopLength = this.length;
+		this.tune = tune;
 		this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
@@ -743,7 +764,9 @@ class SamplePlayer extends Voice {
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
 			osc.start(this.context.currentTime);
-			osc.playbackRate.value = frequency / this.sampleTuneFrequency;
+			if(this.tune) {
+				osc.playbackRate.value = frequency / this.sampleTuneFrequency;
+			}
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}
@@ -771,6 +794,7 @@ class MizzyDevice {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
+		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
@@ -974,62 +998,23 @@ class VSS30 extends MizzyDevice {
 
 class DrumMachine extends MizzyDevice {
 
-	constructor (context) {
+	constructor (context, sample_map) {
 		super(context);
-
-		this.CLAP = new Sample(this.context);
-		this.CLAP.load("./assets/CLAP.mp3");
-
-		this.HAT01 = new Sample(this.context);
-		this.HAT01.load("./assets/HAT01.mp3");
-
-		this.HIT01 = new Sample(this.context);
-		this.HIT01.load("./assets/HIT01.mp3");
-
-		this.HIT02 = new Sample(this.context);
-		this.HIT02.load("./assets/HIT01.mp3");
-
-		this.KICK01 = new Sample(this.context);
-		this.KICK01.load("./assets/KICK01.mp3");
-
-		this.KICK02 = new Sample(this.context);
-		this.KICK02.load("./assets/KICK02.mp3");
-
+		this.samples = sample_map;
 	}
 
 	NoteOn (MidiEvent) {
-		let voice = null;
-		switch (MidiEvent.value) {
-			case 1:
-				voice = new SamplePlayer(this.context, this.KICK01.buffer, false, 8.17);
-				break;
-			case 2:
-				voice = new SamplePlayer(this.context, this.KICK02.buffer, false, 8.66);
-				break;
-			case 3:
-				voice = new SamplePlayer(this.context, this.CLAP.buffer, false, 9.177);
-				break;
-			case 4:
-				voice = new SamplePlayer(this.context, this.HIT01.buffer, false, 9.72);
-				break;
-			case 5:
-				voice = new SamplePlayer(this.context, this.HIT02.buffer, false, 10.3);
-				break;
-			case 6:
-				voice = new SamplePlayer(this.context, this.HAT01.buffer, false, 10.9);
-				break;
-		}
-		if (voice != null) {
-			voice.init();
-			this.setVoiceValues();
-			voice.connect(this.effectInput);
-			voice.on(MidiEvent);
-			this.voices[MidiEvent.value] = voice;
-		}
+		let voice =
+		new SamplePlayer(this.context, this.samples[MidiEvent.value].sample.buffer, false, false);
+		voice.init();
+		this.setVoiceValues();
+		voice.connect(this.effectInput);
+		voice.on(MidiEvent);
+		this.voices[MidiEvent.value] = voice;
 	}
 }
 
-const Components = {FilterEnvelope: Filter, AmpEnvelope, Sample};
+const Components = {FilterEnvelope: Filter, AmpEnvelope, Sample, SampleMap};
 const Effects = {Chorus, Delay, Filter: Filter$1, Reverb, FFT, Saturate};
 const Voices = {ComplexVoice, Noise, SamplePlayer, Voice};
 const Synths = {VSS30, Vincent, DrumMachine};

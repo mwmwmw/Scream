@@ -327,11 +327,12 @@ var Sample = function () {
 }();
 
 var SampleMap = function () {
-	function SampleMap(sample_map) {
+	function SampleMap(context, sample_map) {
 		classCallCheck(this, SampleMap);
 
+		this.context = context;
 		this.input_map = sample_map;
-		this.map = {};
+		this.samples = {};
 		this.loaded = false;
 	}
 
@@ -340,16 +341,15 @@ var SampleMap = function () {
 		value: function load() {
 			var _this = this;
 
-			var sample_map = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.input_map;
-
-			sample_map.forEach(function (sample) {
+			var sampleLoad = [];
+			this.input_map.forEach(function (sample) {
 				var newsample = new Sample(_this.context);
 				newsample.load(sample.src).then(function () {
-					_this.samples[sample.value] = Object.assign(sample, { sample: newSample });
+					_this.samples[sample.value] = Object.assign(sample, { sample: newsample });
 				});
 				sampleLoad.push(newsample);
 			});
-			return new Promise.all(sampleLoad);
+			return Promise.all(sampleLoad);
 		}
 	}]);
 	return SampleMap;
@@ -1033,7 +1033,6 @@ var MizzyDevice = function () {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
@@ -1285,19 +1284,21 @@ var DrumMachine = function (_MizzyDevice) {
 
 		var _this = possibleConstructorReturn(this, (DrumMachine.__proto__ || Object.getPrototypeOf(DrumMachine)).call(this, context));
 
-		_this.samples = sample_map;
+		_this.map = sample_map;
 		return _this;
 	}
 
 	createClass(DrumMachine, [{
 		key: "NoteOn",
 		value: function NoteOn(MidiEvent) {
-			var voice = new SamplePlayer(this.context, this.samples[MidiEvent.value].sample.buffer, false, false);
-			voice.init();
-			this.setVoiceValues();
-			voice.connect(this.effectInput);
-			voice.on(MidiEvent);
-			this.voices[MidiEvent.value] = voice;
+			if (this.map.samples[MidiEvent.value] != null) {
+				var voice = new SamplePlayer(this.context, this.map.samples[MidiEvent.value].sample.buffer, false, false);
+				voice.init();
+				this.setVoiceValues();
+				voice.connect(this.effectInput);
+				voice.on(MidiEvent);
+				this.voices[MidiEvent.value] = voice;
+			}
 		}
 	}]);
 	return DrumMachine;

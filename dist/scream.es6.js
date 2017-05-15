@@ -224,21 +224,23 @@ class Sample {
 }
 
 class SampleMap {
-	constructor (sample_map) {
+	constructor (context, sample_map) {
+		this.context = context;
 		this.input_map = sample_map;
-		this.map = {};
+		this.samples = {};
 		this.loaded = false;
 	}
 
-	load (sample_map = this.input_map) {
-		sample_map.forEach((sample)=>{
+	load () {
+		let sampleLoad = [];
+		this.input_map.forEach((sample)=>{
 			let newsample = new Sample(this.context);
 			newsample.load(sample.src).then(() => {
-				this.samples[sample.value] = Object.assign(sample, {sample:newSample});
+				this.samples[sample.value] = Object.assign(sample, {sample:newsample});
 			});
 			sampleLoad.push(newsample);
 		});
-		return new Promise.all(sampleLoad);
+		return Promise.all(sampleLoad);
 	}
 
 }
@@ -794,7 +796,6 @@ class MizzyDevice {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
@@ -998,19 +999,21 @@ class VSS30 extends MizzyDevice {
 
 class DrumMachine extends MizzyDevice {
 
-	constructor (context, sample_map) {
+	constructor(context, sample_map) {
 		super(context);
-		this.samples = sample_map;
+		this.map = sample_map;
 	}
 
-	NoteOn (MidiEvent) {
-		let voice =
-		new SamplePlayer(this.context, this.samples[MidiEvent.value].sample.buffer, false, false);
-		voice.init();
-		this.setVoiceValues();
-		voice.connect(this.effectInput);
-		voice.on(MidiEvent);
-		this.voices[MidiEvent.value] = voice;
+	NoteOn(MidiEvent) {
+		if(this.map.samples[MidiEvent.value] != null) {
+			let voice =
+				new SamplePlayer(this.context, this.map.samples[MidiEvent.value].sample.buffer, false, false);
+			voice.init();
+			this.setVoiceValues();
+			voice.connect(this.effectInput);
+			voice.on(MidiEvent);
+			this.voices[MidiEvent.value] = voice;
+		}
 	}
 }
 

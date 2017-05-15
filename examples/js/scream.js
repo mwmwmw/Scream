@@ -268,7 +268,7 @@ var Sample = function () {
 		classCallCheck(this, Sample);
 
 
-		this.context = context || new AudioContext();
+		this.context = context;
 		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
 		this.stream = null;
 		this._recordProcessor = null;
@@ -1032,7 +1032,6 @@ var MizzyDevice = function () {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;

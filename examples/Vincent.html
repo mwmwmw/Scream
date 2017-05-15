@@ -19,7 +19,7 @@
     </style>
 </head>
 <body>
-<script src="js/mizzy.js" type="application/javascript"></script>
+<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 
@@ -32,10 +32,41 @@
 	vincent.addEffect(Scream.Effects.Filter);
 	vincent.addEffect(Scream.Effects.Delay);
 	vincent.addEffect(Scream.Effects.Reverb);
-	vincent.attack = 0;
-	vincent.decay = 0.01;
-	vincent.release = 0.001;
+	vincent.attack = 1;
+	vincent.decay = 0.0001;
+	vincent.release = 0.000001;
+	vincent.output.gain.value = 0.05;
 	vincent.connectEffects();
+
+	var map = new Scream.Components.SampleMap(Audio, [{
+		src:"./assets/KICK01.mp3",
+		value: 60
+	},{
+		src:"./assets/KICK02.mp3",
+		value: 61
+	},{
+		src:"./assets/HIT01.mp3",
+		value: 62
+	},{
+		src:"./assets/HIT02.mp3",
+		value: 63
+	},{
+		src:"./assets/CLAP.mp3",
+		value: 64
+	},{
+		src:"./assets/HAT01.mp3",
+		value: 65
+	},
+	]);
+
+	var DM;
+
+	map.load().then(() => {
+		DM = new Scream.Synths.DrumMachine(Audio, map);
+		DM.addEffect(Scream.Effects.Reverb);
+		DM.connectEffects();
+		DM.connect(fft.input);
+	});
 
 	var fft = new Scream.Effects.FFT(Audio);
 	fft.connect(Audio.destination);
@@ -47,13 +78,16 @@
 	m.initialize().then(() => {
 		m.bindToAllInputs();
 		m.bindKeyboard();
-		m.keyToggle((e) => {
+		m.keyToggleRange(0,127,(e) => {
 			vincent.NoteOn(e);
 		}, (e) => {
 			vincent.NoteOff(e);
-		});
-
-
+		}, 1);
+		m.keyToggleRange(60,72, (e)=>{
+			DM.NoteOn(e);
+        }, (e) => {
+			DM.NoteOff(e);
+        }, 10)
 		m.onCC(0, (e) => {
 			vincent.output.gain.value = e.ratio;
 		});
@@ -117,44 +151,86 @@
 
 	var sequence_length = 16;
 
-	function sequenceNote (i, value) {
+	function sequenceNote (i, value, sequence) {
 		if (value > 0) {
 			sequence[i] = Mizzy.Generate.NoteOn(value, 127);
 		} else {
-			sequence[i] = Mizzy.Generate.NoteOff(sequence[i][1]);
+			if (sequence[i] != undefined) {
+				sequence[i] = Mizzy.Generate.NoteOff(sequence[i][1]);
+			}
 		}
 
 	}
 
-	var sequence = new Array(16);
+	var synthSequence = new Array(16);
 
-	function processTick (loopIndex) {
+
+	function processTick (loopIndex, sequence, channel) {
 		if (sequence[loopIndex] != undefined) {
 			var message = sequence[loopIndex];
 			var event = Mizzy.Generate.MidiEvent(message, "C");
-			m.sendMidiMessage(event);
+			m.sendMidiMessage(event,channel);
 			setTimeout(() => {
 				let noteoff = Mizzy.Generate.NoteOff(message[1], 127);
 				let e = Mizzy.Generate.MidiEvent(noteoff, "C");
-				m.sendMidiMessage(e);
+				m.sendMidiMessage(e,channel);
 			}, (60000 / m.clock.BPM) * 0.5);
 		}
 	}
 
-	sequenceNote(0, 72);
-	sequenceNote(4, 60);
-	sequenceNote(8, 68);
-	sequenceNote(12, 64);
+	var drumSeq = [];
+
+	sequenceNote(0, 59, synthSequence);
+	sequenceNote(1, 0, synthSequence);
+	sequenceNote(2, 35, synthSequence);
+	sequenceNote(3, 0, synthSequence);
+	sequenceNote(4, 0, synthSequence);
+	sequenceNote(5, 59, synthSequence);
+	sequenceNote(6, 35, synthSequence);
+	sequenceNote(7, 0, synthSequence);
+	sequenceNote(8, 0, synthSequence);
+	sequenceNote(9, 0, synthSequence);
+	sequenceNote(10, 35, synthSequence);
+	sequenceNote(11, 59, synthSequence);
+	sequenceNote(12, 0, synthSequence);
+	sequenceNote(13, 57, synthSequence);
+	sequenceNote(14, 40, synthSequence);
+	sequenceNote(15, 0, synthSequence);
+
+	sequenceNote(0, 60, drumSeq);
+	sequenceNote(1, 0, drumSeq);
+	sequenceNote(2, 0, drumSeq);
+	sequenceNote(3, 62, drumSeq);
+	sequenceNote(4, 60, drumSeq);
+	sequenceNote(5, 0, drumSeq);
+	sequenceNote(6, 0, drumSeq);
+	sequenceNote(7, 63, drumSeq);
+	sequenceNote(8, 60, drumSeq);
+	sequenceNote(9, 0, drumSeq);
+	sequenceNote(10, 0, drumSeq);
+	sequenceNote(11, 0, drumSeq);
+	sequenceNote(12, 60, drumSeq);
+	sequenceNote(13, 63, drumSeq);
+	sequenceNote(14, 65, drumSeq);
+	sequenceNote(15, 62, drumSeq);
 
 
-	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+	m.clock.on("play", () => {
+		vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM);
+	});
 
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex, synthSequence, 1));
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex, drumSeq, 10));
+	m.clock.on("stop", () => {
+		m.panic();
+	});
 
 	window.addEventListener("keydown", (e) => {
 		switch (e.keyCode) {
 			case 192:
 				if (m.clock.playing) {
 					m.clock.stop();
+					m.panic();
 				} else {
 					m.clock.play();
 				}

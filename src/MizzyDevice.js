@@ -5,7 +5,6 @@ export default class MizzyDevice {
 		this.effectInput = this.output;
 		this.voices = [];
 		this.effects = [];
-		this.effectInput = this.output;
 		this._attack = 0;
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;

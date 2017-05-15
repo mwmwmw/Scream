@@ -3,12 +3,13 @@ import {BASE_SAMPLE_TUNING} from "../Constants";
 
 export default class SamplePlayer extends Voice {
 
-	constructor(context, buffer, loop = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
+	constructor(context, buffer, loop = true, tune = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
 		this.buffer = this.context.createBufferSource(buffer);
 		this.buffer.buffer = buffer;
 		this.length = this.buffer.buffer.duration;
 		this._loopLength = this.length;
+		this.tune = tune;
 		this.loop = loop;
 		// this.buffer.loopStart = 0;
 		// this.buffer.loopEnd = 0;
@@ -27,7 +28,9 @@ export default class SamplePlayer extends Voice {
 		this.value = MidiEvent.value;
 		this.partials.forEach((osc) => {
 			osc.start(this.context.currentTime);
-			osc.playbackRate.value = frequency / this.sampleTuneFrequency;
+			if(this.tune) {
+				osc.playbackRate.value = frequency / this.sampleTuneFrequency;
+			}
 		});
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}

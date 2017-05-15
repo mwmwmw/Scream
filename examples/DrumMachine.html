@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+<script src="js/mizzy.js" type="application/javascript"></script>
+<script src="js/scream.js" type="application/javascript"></script>
+<script>
+
+	var Audio = new (window.AudioContext || window.webkitAudioContext)();
+
+
+	var map = new Scream.Components.SampleMap(Audio, [{
+		src:"./assets/KICK01.mp3",
+        value: 60
+    },{
+		src:"./assets/KICK02.mp3",
+		value: 61
+	},{
+		src:"./assets/HIT01.mp3",
+		value: 62
+	},{
+		src:"./assets/HIT02.mp3",
+		value: 63
+	},{
+		src:"./assets/CLAP.mp3",
+		value: 64
+	},{
+		src:"./assets/HAT01.mp3",
+		value: 65
+	},
+    ]);
+
+	var DM;
+
+	map.load().then(() => {
+		DM = new Scream.Synths.DrumMachine(Audio, map);
+		DM.connect(Audio.destination);
+    });
+
+	var m = new Mizzy();
+	m.initialize().then(() => {
+		m.bindToAllInputs();
+		m.bindKeyboard();
+		m.keyToggle((e) => {
+			DM.NoteOn(e);
+		}, (e) => {
+			DM.NoteOff(e);
+		});
+	});
+
+	var sequence_length = 16;
+
+	function sequenceNote (i, value) {
+		if (value > 0) {
+			sequence[i] = Mizzy.Generate.NoteOn(value, 127);
+		} else {
+			sequence[i] = Mizzy.Generate.NoteOff(sequence[i][1]);
+		}
+
+	}
+
+	var sequence = new Array(16);
+
+	function processTick (loopIndex) {
+		if (sequence[loopIndex] != undefined) {
+			var message = sequence[loopIndex];
+			var event = Mizzy.Generate.MidiEvent(message, "C");
+			m.sendMidiMessage(event);
+			setTimeout(() => {
+				let noteoff = Mizzy.Generate.NoteOff(message[1], 127);
+				let e = Mizzy.Generate.MidiEvent(noteoff, "C");
+				m.sendMidiMessage(e);
+			}, (60000 / m.clock.BPM) * 0.5);
+		}
+	}
+
+	sequenceNote(0, 60);
+	sequenceNote(1, 64);
+	sequenceNote(4, 60);
+	sequenceNote(6, 63);
+	sequenceNote(8, 60);
+	sequenceNote(12, 60);
+	sequenceNote(13, 63);
+	sequenceNote(14, 62);
+	sequenceNote(15, 64);
+
+
+	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
+
+
+	window.addEventListener("keydown", (e) => {
+		switch (e.keyCode) {
+			case 192:
+				if (m.clock.playing) {
+					m.clock.stop();
+				} else {
+					m.clock.play();
+				}
+				break;
+		}
+	});
+
+
+	//var CanvasContainer = document.createElement("div");
+	//document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
+	//fft.addToElement(CanvasContainer);
+</script>
+</body>
+</html>

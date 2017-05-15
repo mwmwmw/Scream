@@ -23,17 +23,14 @@
 
 	var vssConnected = true;
 	var vss30 = new Scream.Synths.VSS30(Audio);
-        vss30.addEffect(Scream.Effects.Filter);
-        vss30.addEffect(Scream.Effects.Delay);
-	    vss30.addEffect(Scream.Effects.Reverb);
-	    vss30.connectEffects();
-
-
-
+	vss30.addEffect(Scream.Effects.Filter);
+	vss30.addEffect(Scream.Effects.Delay);
+	vss30.addEffect(Scream.Effects.Reverb);
+	vss30.connectEffects();
 
 	var fft = new Scream.Effects.FFT(Audio);
 	fft.connect(Audio.destination);
-    fft.draw();
+	fft.draw();
 	vss30.connect(fft.input);
 
 	var m = new Mizzy();
@@ -46,13 +43,13 @@
 			vss30.NoteOff(e);
 		});
 		m.onCC(0, (e) => {
-            vss30.output.gain.value = e.ratio;
+			vss30.output.gain.value = e.ratio;
 		});
 		m.onCC(1, (e) => {
 			vss30.loopLength = e.ratio;
 		});
 		m.onCC(2, (e) => {
-            vss30.loopStart = e.ratio;
+			vss30.loopStart = e.ratio;
 		});
 		m.onCC(3, (e) => {
 
@@ -79,14 +76,15 @@
 			vss30.effects[1].filter.effect.Q.value = e.ratio;
 		});
 		m.onCC(11, (e) => {
-			vss30.effects[1].feedback.gain.value = e.ratio *1.1;
+			vss30.effects[1].feedback.gain.value = e.ratio * 1.1;
 		});
-		var decayTime = setTimeout(()=>{},0);
+		var decayTime = setTimeout(() => {
+		}, 0);
 		m.onCC(12, (e) => {
 			clearTimeout(decayTime);
-            decayTime = setTimeout(()=>{
-	            vss30.effects[2].decayTime = e.ratio * 8;
-            },100);
+			decayTime = setTimeout(() => {
+				vss30.effects[2].decayTime = e.ratio * 8;
+			}, 100);
 		});
 		m.onCC(13, (e) => {
 			vss30.effects[2].wet.gain.value = e.ratio;
@@ -98,17 +96,23 @@
 
 		});
 
-		m.onCC(64, (e)=> {
+		m.onCC(64, (e) => {
 			switch (e.value) {
-                case 0: vss30.stopRecording(); break;
-                case 127: vss30.record(); break;
-            }
-        });
+				case 0:
+					vss30.stopRecording();
+					break;
+				case 127:
+					vss30.record();
+					break;
+			}
+		});
 
-//for(let i=0; i<127;i++) {
-//	m.onCC(i, (e)=>console.log(e));
-//}
-//	});
+	});
+
+	//for(let i=0; i<127;i++) {
+	//	m.onCC(i, (e)=>console.log(e));
+	//}
+	//
 
 	window.addEventListener("keyup", (e) => {
 		switch (e.keyCode) {
@@ -128,38 +132,8 @@
 		}
 	});
 
-//	window.addEventListener("mousemove", (e) => {
-//		var x = Math.round((e.pageX / window.innerWidth) * 127);
-//		var y = Math.round((e.pageY / window.innerHeight) * 127);
-//		var xmessage = Mizzy.Generate.CCEvent(1, x);
-//		m.sendMidiMessage(xmessage);
-//		var ymessage = Mizzy.Generate.CCEvent(2, y);
-//		m.sendMidiMessage(ymessage);
-//	});
-
-
-	var sequence = [];
-	sequence[0] = Mizzy.Generate.NoteOn(60, 127);
-	sequence[1] = Mizzy.Generate.NoteOff(60, 127);
-	sequence[4] = Mizzy.Generate.NoteOn(66, 127);
-	sequence[5] = Mizzy.Generate.NoteOff(66, 127);
-	sequence[8] = Mizzy.Generate.NoteOn(68, 127);
-	sequence[9] = Mizzy.Generate.NoteOff(68, 127);
-	sequence[12] = Mizzy.Generate.NoteOn(54, 127);
-	sequence[13] = Mizzy.Generate.NoteOff(54, 127);
-
-	function processTick (loopIndex) {
-		//console.log(sequence[loopIndex], loopIndex);
-		if(sequence[loopIndex] != undefined) {
-			var message = sequence[loopIndex];
-			var event = Mizzy.Generate.MidiEvent(message, "C");
-			m.sendMidiMessage(event);
-		}
-	}
-
-
 	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
-	m.clock.on("stop", ()=> m.panic());
+	m.clock.on("stop", () => m.panic());
 
 	//m.clock.play();
 
@@ -167,6 +141,7 @@
 	var CanvasContainer = document.createElement("div");
 	document.getElementsByTagName("body")[0].appendChild(CanvasContainer);
 	fft.addToElement(CanvasContainer);
+
 </script>
 </body>
 </html>

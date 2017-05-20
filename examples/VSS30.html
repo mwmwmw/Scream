@@ -29,6 +29,28 @@
 
 	var MIDI_CHANNEL = 1;
 
+	var map = new Scream.Components.SampleMap(Audio, [{
+		src:"./assets/KICK01.mp3",
+		value: "kick"
+	},{
+		src:"./assets/KICK02.mp3",
+		value: 61
+	},{
+		src:"./assets/HIT01.mp3",
+		value: "hat"
+	},{
+		src:"./assets/HIT02.mp3",
+		value: 63
+	},{
+		src:"./assets/CLAP.mp3",
+		value: 64
+	},{
+		src:"./assets/HAT01.mp3",
+		value: 65
+	},
+	]);
+    map.load();
+
 	var vssConnected = true;
 	var vss30 = new Scream.Synths.VSS30(Audio);
 	vss30.addEffect(Scream.Effects.Filter);

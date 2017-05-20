@@ -1278,6 +1278,11 @@ var VSS30 = function (_MizzyDevice) {
 			this.sample.reverse();
 		}
 	}, {
+		key: "setSample",
+		value: function setSample(sample) {
+			this.sample = sample;
+		}
+	}, {
 		key: "setVoiceValues",
 		value: function setVoiceValues() {
 			var _this3 = this;

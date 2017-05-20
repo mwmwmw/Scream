@@ -140,6 +140,10 @@ export default class VSS30 extends MizzyDevice {
 		return this._release;
 	}
 
+	setSample( sample ) {
+		this.sample = sample;
+	}
+
 	setVoiceValues() {
 		this.voices.forEach((voice)=>{
 			voice.attack = this._attack;

@@ -271,8 +271,11 @@ var Sample = function () {
 
 		this.context = context;
 		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
+		this.rawBuffer = new Float32Array(this.buffer.length);
+		this.buffer.copyFromChannel(this.rawBuffer, 1, 0);
 		this.stream = null;
 		this._recordProcessor = null;
+		this.overdub = false;
 	}
 
 	createClass(Sample, [{
@@ -287,6 +290,35 @@ var Sample = function () {
 			}).then(function (buffer) {
 				_this.buffer = buffer;
 			});
+		}
+	}, {
+		key: "reverse",
+		value: function reverse() {
+			var reverse = new Float32Array(this.rawBuffer);
+			reverse.reverse();
+			this.buffer = this.context.createBuffer(2, reverse.length, this.context.sampleRate);
+			this.buffer.copyToChannel(reverse, 0);
+			this.buffer.copyToChannel(reverse, 1);
+		}
+	}, {
+		key: "pingpong",
+		value: function pingpong() {
+			var offset = this.rawBuffer.length;
+			var newArray = new Float32Array(offset * 2);
+			var reverse = new Float32Array(this.rawBuffer);
+			reverse.reverse();
+			newArray.set(this.rawBuffer, 0);
+			newArray.set(reverse, offset - 1);
+			this.buffer = this.context.createBuffer(2, newArray.length, this.context.sampleRate);
+			this.buffer.copyToChannel(newArray, 0);
+			this.buffer.copyToChannel(newArray, 1);
+		}
+	}, {
+		key: "normal",
+		value: function normal() {
+			this.buffer = this.context.createBuffer(2, this.rawBuffer.length, this.context.sampleRate);
+			this.buffer.copyToChannel(this.rawBuffer, 0);
+			this.buffer.copyToChannel(this.rawBuffer, 1);
 		}
 	}, {
 		key: "record",
@@ -315,13 +347,42 @@ var Sample = function () {
 		key: "stopRecording",
 		value: function stopRecording() {
 			this._recordProcessor.disconnect();
+			this.rawBuffer = this.stream;
 			this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
 			this.buffer.copyToChannel(this.stream, 0);
 			this.buffer.copyToChannel(this.stream, 1);
 		}
 	}, {
-		key: "recordInput",
-		value: function recordInput(input) {}
+		key: "overwrite",
+		value: function overwrite() {
+			this._recordProcessor.disconnect();
+			var bufferlength = 0;
+			if (this.stream.length > this.buffer.length) {
+				bufferlength = this.stream.length;
+			} else {
+				bufferlength = this.buffer.length;
+			}
+			var mixedBuffer = new Float32Array(bufferlength);
+			var bufferA = this.stream;
+			var bufferB = new Float32Array(this.buffer.length);
+			this.buffer.copyFromChannel(bufferB, 1, 0);
+			for (var i = 0; i < bufferlength; i++) {
+				var aValue = 0;
+				var bValue = 0;
+				if (bufferA[i] != undefined) {
+					aValue = bufferA[i];
+				}
+				if (bufferB[i] != undefined) {
+					bValue = bufferB[i];
+				}
+				mixedBuffer[i] = aValue + bValue;
+			}
+			this.rawBuffer = mixedBuffer;
+			this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
+			this.buffer.copyToChannel(mixedBuffer, 0);
+			this.buffer.copyToChannel(mixedBuffer, 1);
+			this.overdub = false;
+		}
 	}]);
 	return Sample;
 }();
@@ -1143,6 +1204,15 @@ var Vincent = function (_MizzyDevice) {
 
 var VSS30 = function (_MizzyDevice) {
 	inherits(VSS30, _MizzyDevice);
+	createClass(VSS30, null, [{
+		key: "LOOP_MODES",
+		get: function get$$1() {
+			return {
+				NORMAL: "NORMAL",
+				PINGPONG: "PINGPONG"
+			};
+		}
+	}]);
 
 	function VSS30(context) {
 		classCallCheck(this, VSS30);
@@ -1151,6 +1221,9 @@ var VSS30 = function (_MizzyDevice) {
 
 		_this.sample = new Sample(_this.context);
 		_this.recording = false;
+		_this.loop = true;
+		_this._loopMode = VSS30.LOOP_MODES.NORMAL;
+		_this._reverse = false;
 		_this._loopStart = 0;
 		_this._loopEnd = 0;
 		_this._loopLength = 1;
@@ -1163,10 +1236,12 @@ var VSS30 = function (_MizzyDevice) {
 			var _this2 = this;
 
 			var timeout = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+			var overdub = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
 			if (!this.recording) {
 				console.log("recording...");
 				this.recording = true;
+				this.sample.overdub = overdub;
 				this.sample.record();
 				if (timeout != null) {
 					setTimeout(function () {
@@ -1180,19 +1255,28 @@ var VSS30 = function (_MizzyDevice) {
 		value: function stopRecording() {
 			if (this.recording) {
 				this.recording = false;
-				this.sample.stopRecording();
+				if (!this.sample.overdub) {
+					this.sample.stopRecording();
+				} else {
+					this.sample.overwrite();
+				}
 				console.log("stop recording.", this.sample.buffer.length);
 			}
 		}
 	}, {
 		key: "NoteOn",
 		value: function NoteOn(MidiEvent) {
-			var voice = new SamplePlayer(this.context, this.sample.buffer, true);
+			var voice = new SamplePlayer(this.context, this.sample.buffer, this.loop);
 			voice.init();
 			this.setVoiceValues();
 			voice.connect(this.effectInput);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;
+		}
+	}, {
+		key: "toggleReverse",
+		value: function toggleReverse() {
+			this.sample.reverse();
 		}
 	}, {
 		key: "setVoiceValues",
@@ -1217,6 +1301,22 @@ var VSS30 = function (_MizzyDevice) {
 		},
 		get: function get$$1() {
 			return this._loopStart;
+		}
+	}, {
+		key: "loopMode",
+		set: function set$$1(value) {
+			this._loopMode = value;
+			switch (this._loopMode) {
+				case VSS30.LOOP_MODES.PINGPONG:
+					this.sample.pingpong();
+					break;
+				case VSS30.LOOP_MODES.NORMAL:
+					this.sample.normal();
+					break;
+			}
+		},
+		get: function get$$1() {
+			return this._loopMode;
 		}
 	}, {
 		key: "loopEnd",

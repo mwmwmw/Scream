@@ -4,19 +4,30 @@ import SamplePlayer from "../Voices/SamplePlayer";
 
 export default class VSS30 extends MizzyDevice {
 
+	static get LOOP_MODES () {
+		return {
+			NORMAL : "NORMAL",
+			PINGPONG : "PINGPONG"
+		}
+	}
+
 	constructor (context) {
 		super(context);
 		this.sample = new Sample(this.context);
 		this.recording = false;
+		this.loop = true;
+		this._loopMode = VSS30.LOOP_MODES.NORMAL;
+		this._reverse = false;
 		this._loopStart = 0;
 		this._loopEnd = 0;
 		this._loopLength = 1;
 	}
 
-	record(timeout = null) {
+	record(timeout = null, overdub = false) {
 		if(!this.recording) {
 			console.log("recording...");
 			this.recording = true;
+			this.sample.overdub = overdub;
 			this.sample.record();
 			if(timeout!=null) {
 				setTimeout(() => this.stopRecording(), timeout)
@@ -27,13 +38,17 @@ export default class VSS30 extends MizzyDevice {
 	stopRecording() {
 		if(this.recording) {
 			this.recording = false;
-			this.sample.stopRecording();
+			if(!this.sample.overdub) {
+				this.sample.stopRecording();
+			} else {
+				this.sample.overwrite();
+			}
 			console.log("stop recording.", this.sample.buffer.length);
 		}
 	}
 
 	NoteOn (MidiEvent) {
-		let voice = new SamplePlayer(this.context, this.sample.buffer, true);
+		let voice = new SamplePlayer(this.context, this.sample.buffer, this.loop);
 		voice.init();
 		this.setVoiceValues();
 		voice.connect(this.effectInput);
@@ -44,6 +59,26 @@ export default class VSS30 extends MizzyDevice {
 	set loopStart(value) {
 		this._loopStart = value;
 		this.setVoiceValues();
+	}
+
+	set loopMode (value) {
+		this._loopMode = value;
+		switch (this._loopMode) {
+			case VSS30.LOOP_MODES.PINGPONG:
+				this.sample.pingpong();
+				break;
+			case VSS30.LOOP_MODES.NORMAL:
+				this.sample.normal();
+				break;
+		}
+	}
+
+	get loopMode () {
+		return this._loopMode;
+	}
+
+	toggleReverse() {
+		this.sample.reverse();
 	}
 
 	get loopStart () {

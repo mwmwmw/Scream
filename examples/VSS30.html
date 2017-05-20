@@ -16,10 +16,18 @@
     </style>
 </head>
 <body>
-<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
+
+<div class="controls">
+
+</div>
+
+<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js"
+        type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 	var Audio = new (window.AudioContext || window.webkitAudioContext)();
+
+	var MIDI_CHANNEL = 1;
 
 	var vssConnected = true;
 	var vss30 = new Scream.Synths.VSS30(Audio);
@@ -36,48 +44,51 @@
 	var m = new Mizzy();
 	m.initialize().then(() => {
 		m.bindToAllInputs();
-		m.bindKeyboard();
-		m.keyToggle((e) => {
+		m.bindKeyboard(MIDI_CHANNEL);
+		m.keyToggleRange(0, 127, (e) => {
+			console.log(e);
 			vss30.NoteOn(e);
 		}, (e) => {
+			console.log(e);
 			vss30.NoteOff(e);
-		});
+		}, MIDI_CHANNEL);
+
 		m.onCC(0, (e) => {
 			vss30.output.gain.value = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(1, (e) => {
 			vss30.loopLength = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(2, (e) => {
 			vss30.loopStart = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(3, (e) => {
 
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(4, (e) => {
 			vss30.effects[0].effect.frequency.value = 40 + (e.ratio * 7600);
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(5, (e) => {
 			vss30.effects[0].effect.Q.value = 100 * e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(6, (e) => {
 
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(7, (e) => {
 
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(8, (e) => {
 			vss30.effects[1].effect.delayTime.value = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(9, (e) => {
 			vss30.effects[1].filter.effect.frequency.value = 160 + e.ratio * 1500;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(10, (e) => {
 			vss30.effects[1].filter.effect.Q.value = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(11, (e) => {
 			vss30.effects[1].feedback.gain.value = e.ratio * 1.1;
-		});
+		}, MIDI_CHANNEL);
 		var decayTime = setTimeout(() => {
 		}, 0);
 		m.onCC(12, (e) => {
@@ -85,16 +96,16 @@
 			decayTime = setTimeout(() => {
 				vss30.effects[2].decayTime = e.ratio * 8;
 			}, 100);
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(13, (e) => {
 			vss30.effects[2].wet.gain.value = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(14, (e) => {
 			vss30.effects[2].dry.gain.value = e.ratio;
-		});
+		}, MIDI_CHANNEL);
 		m.onCC(15, (e) => {
 
-		});
+		}, MIDI_CHANNEL);
 
 		m.onCC(64, (e) => {
 			switch (e.value) {
@@ -105,7 +116,7 @@
 					vss30.record();
 					break;
 			}
-		});
+		}, MIDI_CHANNEL);
 
 	});
 
@@ -119,23 +130,22 @@
 			case 192:
 				vss30.stopRecording();
 				break;
+			case 49:
+				vss30.stopRecording();
+				break;
 		}
 	});
 
 	window.addEventListener("keydown", (e) => {
 		switch (e.keyCode) {
 			case 192:
-				if (vssConnected) {
-					vss30.record();
-				}
+				vss30.record();
+				break;
+			case 49:
+				vss30.record(null, true);
 				break;
 		}
 	});
-
-	m.clock.on("tick", (tick) => processTick(tick.loopIndex));
-	m.clock.on("stop", () => m.panic());
-
-	//m.clock.play();
 
 
 	var CanvasContainer = document.createElement("div");

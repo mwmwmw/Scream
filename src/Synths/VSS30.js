@@ -6,8 +6,8 @@ export default class VSS30 extends MizzyDevice {
 
 	static get LOOP_MODES () {
 		return {
-			NORMAL : "NORMAL",
-			PINGPONG : "PINGPONG"
+			NORMAL: "NORMAL",
+			PINGPONG: "PINGPONG"
 		}
 	}
 
@@ -15,7 +15,7 @@ export default class VSS30 extends MizzyDevice {
 		super(context);
 		this.sample = new Sample(this.context);
 		this.recording = false;
-		this.loop = true;
+		this._loop = true;
 		this._loopMode = VSS30.LOOP_MODES.NORMAL;
 		this._reverse = false;
 		this._loopStart = 0;
@@ -48,12 +48,24 @@ export default class VSS30 extends MizzyDevice {
 	}
 
 	NoteOn (MidiEvent) {
-		let voice = new SamplePlayer(this.context, this.sample.buffer, this.loop);
+		let voice = new SamplePlayer(this.context, this.sample.buffer, this._loop);
 		voice.init();
 		this.setVoiceValues();
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;
+	}
+
+	set loop (value) {
+		this._loop = value;
+	}
+
+	get loop () {
+		return this._loop;
+	}
+
+	set loopMode (value) {
+		this._loopMode = value;
 	}
 
 	set loopStart(value) {

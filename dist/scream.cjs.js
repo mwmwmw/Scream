@@ -153,7 +153,12 @@ var AmpEnvelope = function () {
 }();
 
 var FILTER_TYPES = ["lowpass", "highpass", "bandpass", "lowshelf", "highshelf", "peaking", "notch", "allpass"];
-
+var FFT_TYPES = {
+  FREQUENCY: 0,
+  TIME: 1,
+  FREQUENCY8: 2,
+  TIME8: 3
+};
 var BASE_SAMPLE_TUNING = 261.625565; // Middle C.
 
 var Filter = function () {
@@ -347,10 +352,26 @@ var Sample = function () {
 		key: "stopRecording",
 		value: function stopRecording() {
 			this._recordProcessor.disconnect();
-			this.rawBuffer = this.stream;
+			this.rawBuffer = this.ramp(this.stream);
 			this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
 			this.buffer.copyToChannel(this.stream, 0);
 			this.buffer.copyToChannel(this.stream, 1);
+		}
+	}, {
+		key: "ramp",
+		value: function ramp(buffer) {
+			var newBuffer = buffer;
+			if (newBuffer.length > SAMPLE_BUFFER_SIZE) {
+				for (var i = 0; i < SAMPLE_BUFFER_SIZE; i++) {
+					newBuffer[i] = newBuffer[i] * i / SAMPLE_BUFFER_SIZE;
+				}
+				var j = SAMPLE_BUFFER_SIZE;
+				for (var i = newBuffer.length - SAMPLE_BUFFER_SIZE; i < newBuffer.length; i++) {
+					j--;
+					newBuffer[i] = newBuffer[i] * j / SAMPLE_BUFFER_SIZE;
+				}
+			}
+			return newBuffer;
 		}
 	}, {
 		key: "overwrite",
@@ -377,7 +398,7 @@ var Sample = function () {
 				}
 				mixedBuffer[i] = aValue + bValue;
 			}
-			this.rawBuffer = mixedBuffer;
+			this.rawBuffer = this.ramp(mixedBuffer);
 			this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
 			this.buffer.copyToChannel(mixedBuffer, 0);
 			this.buffer.copyToChannel(mixedBuffer, 1);
@@ -571,6 +592,7 @@ var FFT = function (_Effect) {
 		var _this = possibleConstructorReturn(this, (FFT.__proto__ || Object.getPrototypeOf(FFT)).call(this, context));
 
 		_this.name = "fft";
+		_this.mode = FFT_TYPES.FREQUENCY;
 		return _this;
 	}
 
@@ -580,22 +602,45 @@ var FFT = function (_Effect) {
 			this.canvas = document.createElement("canvas");
 			this.canvas.setAttribute("id", "fft");
 			this.ctx = this.canvas.getContext("2d");
-			this.ctx.canvas.width = 1024;
-			this.ctx.canvas.height = 400;
+			this.ctx.canvas.width = 512;
+			this.ctx.canvas.height = 512;
 			this.effect = this.context.createAnalyser();
-			this.effect.fftSize = 1024;
+			this.effect.fftSize = 2048;
 			this.effect.maxDecibels = -50;
 			this.effect.minDecibels = -120;
 			this.effect.smoothingTimeConstant = 0.9;
 			this.effect.connect(this.output);
 		}
 	}, {
+		key: "data",
+		value: function data() {
+
+			switch (this.mode) {
+				case FFT_TYPES.FREQUENCY:
+					var myDataArray = new Float32Array(this.effect.frequencyBinCount);
+					this.effect.getFloatFrequencyData(myDataArray);
+					break;
+				case FFT_TYPES.TIME:
+					var myDataArray = new Float32Array(this.effect.frequencyBinCount);
+					this.effect.getFloatTimeDomainData(myDataArray);
+					break;
+				case FFT_TYPES.FREQUENCY8:
+					var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
+					this.effect.getByteTimeDomainData(myDataArray);
+					break;
+				case FFT_TYPES.TIME8:
+					var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
+					this.effect.getByteTimeDomainData(myDataArray);
+					break;
+			}
+			return myDataArray;
+		}
+	}, {
 		key: "draw",
 		value: function draw() {
 			var _this2 = this;
 
-			var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
-			this.effect.getByteFrequencyData(myDataArray);
+			var myDataArray = this.data();
 
 			var ctx = this.ctx;
 			ctx.save();
@@ -605,12 +650,19 @@ var FFT = function (_Effect) {
 			ctx.restore();
 			var i = 0;
 			var width = ctx.canvas.width / myDataArray.length;
+			var height = ctx.canvas.height * 0.5;
+
+			ctx.beginPath();
+			ctx.moveTo(0, height);
+			ctx.strokeStyle = "rgb(100,255,255)";
+			ctx.lineWidth = 5;
 
 			for (var point in myDataArray) {
-				ctx.fillStyle = "rgb(100,255,255)";
-				ctx.fillRect(width * i, ctx.canvas.height, width, -(myDataArray[point] / 255) * ctx.canvas.height);
+				ctx.lineTo(width * i, height + myDataArray[point] * height * 10);
 				i++;
 			}
+			ctx.moveTo(width, height);
+			ctx.stroke();
 
 			window.requestAnimationFrame(function () {
 				_this2.draw();
@@ -1221,7 +1273,7 @@ var VSS30 = function (_MizzyDevice) {
 
 		_this.sample = new Sample(_this.context);
 		_this.recording = false;
-		_this.loop = true;
+		_this._loop = true;
 		_this._loopMode = VSS30.LOOP_MODES.NORMAL;
 		_this._reverse = false;
 		_this._loopStart = 0;
@@ -1266,9 +1318,9 @@ var VSS30 = function (_MizzyDevice) {
 	}, {
 		key: "NoteOn",
 		value: function NoteOn(MidiEvent) {
-			var voice = new SamplePlayer(this.context, this.sample.buffer, this.loop);
-			voice.init();
+			var voice = new SamplePlayer(this.context, this.sample.buffer, this._loop);
 			this.setVoiceValues();
+			voice.init();
 			voice.connect(this.effectInput);
 			voice.on(MidiEvent);
 			this.voices[MidiEvent.value] = voice;
@@ -1299,13 +1351,12 @@ var VSS30 = function (_MizzyDevice) {
 			});
 		}
 	}, {
-		key: "loopStart",
+		key: "loop",
 		set: function set$$1(value) {
-			this._loopStart = value;
-			this.setVoiceValues();
+			this._loop = value;
 		},
 		get: function get$$1() {
-			return this._loopStart;
+			return this._loop;
 		}
 	}, {
 		key: "loopMode",
@@ -1322,6 +1373,15 @@ var VSS30 = function (_MizzyDevice) {
 		},
 		get: function get$$1() {
 			return this._loopMode;
+		}
+	}, {
+		key: "loopStart",
+		set: function set$$1(value) {
+			this._loopStart = value;
+			this.setVoiceValues();
+		},
+		get: function get$$1() {
+			return this._loopStart;
 		}
 	}, {
 		key: "loopEnd",

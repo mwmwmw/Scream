@@ -19,7 +19,7 @@
     </style>
 </head>
 <body>
-<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
+<script src="https://cdn.jsdelivr.net/gh/mwmwmw/Mizzy@bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 
@@ -69,6 +69,7 @@
 	});
 
 	var fft = new Scream.Effects.FFT(Audio);
+		fft.mode = 1;
 	fft.connect(Audio.destination);
 	fft.draw();
 
@@ -140,11 +141,11 @@
 		});
 		m.onCC(15, (e) => {
 			m.clock.BPM = 40 + (e.ratio * 140);
-			vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM);
+			vincent.effects[1].effect.delayTime.value = (60000 / m.clock.BPM)/1000;
 		});
 		for (let i = 16; i < 16 + 16; i++) {
 			m.onCC(i, (e) => {
-				sequenceNote(i, e)
+				sequenceNote(i-16, e.value, synthSequence)
 			});
 		}
 	});

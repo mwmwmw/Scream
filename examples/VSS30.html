@@ -21,8 +21,7 @@
 
 </div>
 
-<script src="https://cdn.rawgit.com/mwmwmw/Mizzy/bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js"
-        type="application/javascript"></script>
+<script src="https://cdn.jsdelivr.net/gh/mwmwmw/Mizzy@bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 	var Audio = new (window.AudioContext || window.webkitAudioContext)();
@@ -59,6 +58,7 @@
 	vss30.connectEffects();
 
 	var fft = new Scream.Effects.FFT(Audio);
+		fft.mode = 1;
 	fft.connect(Audio.destination);
 	fft.draw();
 	vss30.connect(fft.input);

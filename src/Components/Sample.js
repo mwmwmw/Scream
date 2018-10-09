@@ -72,10 +72,25 @@ export default class Sample {
 
 	stopRecording() {
 		this._recordProcessor.disconnect();
-		this.rawBuffer = this.stream;
+		this.rawBuffer = this.ramp(this.stream);
 		this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
 		this.buffer.copyToChannel(this.stream, 0);
 		this.buffer.copyToChannel(this.stream, 1);
+	}
+
+	ramp(buffer) {
+		let newBuffer = buffer; 
+		if(newBuffer.length > SAMPLE_BUFFER_SIZE) {
+			for(var i = 0; i < SAMPLE_BUFFER_SIZE; i++) {
+				newBuffer[i] = newBuffer[i] * i / SAMPLE_BUFFER_SIZE; 
+			}
+			var j = SAMPLE_BUFFER_SIZE;
+			for(var i = newBuffer.length-SAMPLE_BUFFER_SIZE; i < newBuffer.length; i++) {
+				j--;
+				newBuffer[i] = newBuffer[i] * j / SAMPLE_BUFFER_SIZE; 
+			}
+		}
+		return newBuffer;
 	}
 
 	overwrite () {
@@ -101,7 +116,7 @@ export default class Sample {
 			}
 			mixedBuffer[i] = aValue + bValue;
 		}
-		this.rawBuffer = mixedBuffer;
+		this.rawBuffer = this.ramp(mixedBuffer);
 		this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
 		this.buffer.copyToChannel(mixedBuffer, 0);
 		this.buffer.copyToChannel(mixedBuffer, 1);

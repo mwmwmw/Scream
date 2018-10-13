@@ -49,13 +49,17 @@ export default class VSS30 extends MizzyDevice {
 
 	NoteOn (MidiEvent) {
 		let voice = new SamplePlayer(this.context, this.sample.buffer, this._loop);
-		this.setVoiceValues();
+			voice.attack = this.attack;
+			voice.decay = this.decay;
+			voice.sustain = this.sustain;
+			voice.release = this.release;
+			voice.loopStart = this._loopStart;
+			voice.loopLength = this._loopLength;
 		voice.init();
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;
 	}
-
 	set loop (value) {
 		this._loop = value;
 	}

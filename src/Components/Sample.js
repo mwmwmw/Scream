@@ -19,7 +19,12 @@ export default class Sample {
 				return this.context.decodeAudioData(myBlob);
 			})
 			.then((buffer) => {
-				this.buffer = buffer;
+				this.rawBuffer = new Float32Array(this.buffer.length);
+				this.rawBuffer = buffer.getChannelData(0);
+				this.buffer = this.context.createBuffer(2, this.rawBuffer.length, this.context.sampleRate);
+				this.buffer.copyToChannel(this.rawBuffer, 0);
+				this.buffer.copyToChannel(this.rawBuffer, 1);
+				return this;
 			})
 	}
 
@@ -72,22 +77,24 @@ export default class Sample {
 
 	stopRecording() {
 		this._recordProcessor.disconnect();
+		this.rawBuffer = new Float32Array(this.stream.length);
 		this.rawBuffer = this.ramp(this.stream);
 		this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
-		this.buffer.copyToChannel(this.stream, 0);
-		this.buffer.copyToChannel(this.stream, 1);
+		this.buffer.copyToChannel(this.rawBuffer, 0);
+		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
 	ramp(buffer) {
 		let newBuffer = buffer; 
-		if(newBuffer.length > SAMPLE_BUFFER_SIZE) {
-			for(var i = 0; i < SAMPLE_BUFFER_SIZE; i++) {
-				newBuffer[i] = newBuffer[i] * i / SAMPLE_BUFFER_SIZE; 
+		const BUFFER_SIZE = 512;
+		if(newBuffer.length > BUFFER_SIZE) {
+			for(var i = 0; i < BUFFER_SIZE; i++) {
+				newBuffer[i] = newBuffer[i] * i / BUFFER_SIZE; 
 			}
-			var j = SAMPLE_BUFFER_SIZE;
-			for(var i = newBuffer.length-SAMPLE_BUFFER_SIZE; i < newBuffer.length; i++) {
+			var j = BUFFER_SIZE;
+			for(var i = newBuffer.length-BUFFER_SIZE; i < newBuffer.length; i++) {
 				j--;
-				newBuffer[i] = newBuffer[i] * j / SAMPLE_BUFFER_SIZE; 
+				newBuffer[i] = newBuffer[i] * j / BUFFER_SIZE; 
 			}
 		}
 		return newBuffer;
@@ -118,8 +125,8 @@ export default class Sample {
 		}
 		this.rawBuffer = this.ramp(mixedBuffer);
 		this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
-		this.buffer.copyToChannel(mixedBuffer, 0);
-		this.buffer.copyToChannel(mixedBuffer, 1);
+		this.buffer.copyToChannel(this.rawBuffer, 0);
+		this.buffer.copyToChannel(this.rawBuffer, 1);
 		this.overdub = false;
 	}
 }

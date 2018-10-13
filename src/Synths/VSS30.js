@@ -19,8 +19,7 @@ export default class VSS30 extends MizzyDevice {
 		this._loopMode = VSS30.LOOP_MODES.NORMAL;
 		this._reverse = false;
 		this._loopStart = 0;
-		this._loopEnd = 0;
-		this._loopLength = 1;
+		this._loopEnd = 1;
 	}
 
 	record(timeout = null, overdub = false) {
@@ -43,7 +42,6 @@ export default class VSS30 extends MizzyDevice {
 			} else {
 				this.sample.overwrite();
 			}
-			console.log("stop recording.", this.sample.buffer.length);
 		}
 	}
 
@@ -54,12 +52,13 @@ export default class VSS30 extends MizzyDevice {
 			voice.sustain = this.sustain;
 			voice.release = this.release;
 			voice.loopStart = this._loopStart;
-			voice.loopLength = this._loopLength;
+			voice.loopEnd = this._loopEnd;
 		voice.init();
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;
 	}
+
 	set loop (value) {
 		this._loop = value;
 	}
@@ -87,6 +86,7 @@ export default class VSS30 extends MizzyDevice {
 				this.sample.normal();
 				break;
 		}
+		this.setVoiceValues();
 	}
 
 	get loopMode () {
@@ -110,13 +110,8 @@ export default class VSS30 extends MizzyDevice {
 		return this._loopEnd;
 	}
 
-	set loopLength(value) {
-		this._loopLength = value;
-		this.setVoiceValues();
-	}
-
 	get loopLength () {
-		return this._loopLength;
+		return this.sample.buffer.duration;
 	}
 
 
@@ -158,6 +153,7 @@ export default class VSS30 extends MizzyDevice {
 
 	setSample( sample ) {
 		this.sample = sample;
+		this.setVoiceValues();
 	}
 
 	setVoiceValues() {
@@ -167,8 +163,7 @@ export default class VSS30 extends MizzyDevice {
 			voice.sustain = this._sustain;
 			voice.release = this._release;
 			voice.loopStart = this._loopStart;
-			//voice.loopEnd = this._loopEnd;
-			voice.loopLength = this._loopLength;
+			voice.loopEnd = this._loopEnd;
 		});
 	}
 

@@ -5,22 +5,23 @@ export default class SamplePlayer extends Voice {
 
 	constructor(context, buffer, loop = true, tune = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
-		this.buffer = this.context.createBufferSource(buffer);
+		this.buffer = this.context.createBufferSource();
 		this.buffer.buffer = buffer;
-		this.length = this.buffer.buffer.duration;
-		this._loopLength = this.length;
 		this.tune = tune;
 		this.loop = loop;
-		// this.buffer.loopStart = 0;
-		// this.buffer.loopEnd = 0;
 		this.sampleTuneFrequency = sampleTuneFrequency;
+		this._loopstart = 0;
+		this._loopend = 0;
+		this.loopStart = 0;
+		this.loopEnd = 1;
 	}
 
 	init() {
 		this.buffer.connect(this.ampEnvelope.output);
 		this.buffer.loop = this.loop;
+		this.buffer.loopStart = this._loopstart;
+		this.buffer.loopEnd = this._loopend;
 		this.partials.push(this.buffer);
-
 	}
 
 	on(MidiEvent) {
@@ -35,18 +36,18 @@ export default class SamplePlayer extends Voice {
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}
 
-	set loopStart(value) {
-		this.buffer.loopStart = this.buffer.buffer.duration * value;
-		this.buffer.loopEnd = this.buffer.loopStart + this.loopLength;
+	set loopStart (value) {
+		this._loopstart = value * this.loopLength;
+		this.buffer.loopStart = this._loopstart;
 	}
 
-	set loopLength(value) {
-		this._loopLength = value;
-		this.buffer.loopEnd = this.buffer.loopStart + this._loopLength;
+	set loopEnd(value) {
+		this._loopend = value * this.loopLength;
+		this.buffer.loopEnd = this._loopend;
 	}
 
 	get loopLength () {
-		return this._loopLength;
+		return this.buffer.buffer.duration;
 	}
 
 }

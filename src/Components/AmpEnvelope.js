@@ -24,10 +24,12 @@ export default class AmpEnvelope {
 	start (time) {
 		this.output.gain.value = 0;
 		this.output.gain.setValueAtTime(0, time);
-		return this.output.gain.setTargetAtTime(this.sustain * this.velocity, time + this.attack, this.decay + 0.001);
+		this.output.gain.setTargetAtTime(1, time, this.attack);
+		this.output.gain.setTargetAtTime(this.sustain * this.velocity, time + this.attack, this.decay);
 	}
 
 	stop (time) {
+		this.sustain = this.output.gain.value;
 		this.output.gain.cancelScheduledValues(time);
 		this.output.gain.setValueAtTime(this.sustain, time);
 		this.output.gain.setTargetAtTime(0, time, this.release);

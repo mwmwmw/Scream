@@ -1,8 +1,14 @@
 const SAMPLE_BUFFER_SIZE = 1024;
 
-export default class Sample {
-	constructor (context) {
+export const RECORD_MODE = {
+	USER_MEDIA: "USER_MEDIA",
+	STREAN: "STREAM"
+}
 
+export default class Sample {
+	constructor (context, recordMode = RECORD_MODE.USER_MEDIA) {
+		this.RECORD_MODE = recordMode
+		this.recordInput = context.createMediaStreamDestination();
 		this.context = context;
 		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
 		this.rawBuffer = new Float32Array(this.buffer.length);
@@ -54,25 +60,36 @@ export default class Sample {
 		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
-	record () {
-		this.buffered = 0;
-		this.stream = new Float32Array(0);
-		navigator.mediaDevices.getUserMedia({audio: true, video: false})
-			.then((stream) => {
-				let input = this.context.createMediaStreamSource(stream);
-				this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
+	record() {
+		switch(this.recordMode) {
+			case RECORD_MODE.STREAM:
+				this.recordStream(this.input.stream);
+			break;
+			case RECORD_MODE.USER_MEDIA:
+				navigator.mediaDevices.getUserMedia({audio: true, video: false})
+				.then((stream) =>this.recordStream(stream))
+			break;
+		}
+	}
 
-				input.connect(this._recordProcessor);
-				this._recordProcessor.connect(this.context.destination);
-				this._recordProcessor.onaudioprocess = (e) => {
-					let chunk = e.inputBuffer.getChannelData(0);
-					var newStream = new Float32Array(this.stream.length + chunk.length);
-						newStream.set(this.stream);
-						newStream.set(chunk,chunk.length * this.buffered);
-						this.stream = newStream;
-					this.buffered++;
-				};
-			})
+	recordStream(stream) {
+
+			this.buffered = 0;
+			this.stream = new Float32Array(0);
+
+			let input = this.context.createMediaStreamSource(stream);
+			this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
+
+			input.connect(this._recordProcessor);
+			this._recordProcessor.connect(this.context.destination);
+			this._recordProcessor.onaudioprocess = (e) => {
+				let chunk = e.inputBuffer.getChannelData(0);
+				var newStream = new Float32Array(this.stream.length + chunk.length);
+					newStream.set(this.stream);
+					newStream.set(chunk,chunk.length * this.buffered);
+					this.stream = newStream;
+				this.buffered++;
+			};
 	}
 
 	stopRecording() {

@@ -5,9 +5,25 @@ export default class Effect {
 		this.context = context;
 		this.input = this.context.createGain();
 		this.effect = null;
+		this.bypassed = false;
 		this.output = this.context.createGain();
 		this.setup();
 		this.wireUp();
+	}
+
+	bypass(bool) {
+		if(bool != this.bypassed) {
+			this.bypassed = bool;
+			if(bool) {
+				this.input.connect(this.output);
+				this.input.disconnect(this.effect);
+				//this.effect.disconnect(this.output);
+			} else {
+				//this.effect.connect(this.output);
+				this.input.connect(this.effect);
+				this.input.disconnect(this.output);
+			}
+		}
 	}
 
 	setup() {

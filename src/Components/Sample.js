@@ -2,12 +2,12 @@ const SAMPLE_BUFFER_SIZE = 1024;
 
 export const RECORD_MODE = {
 	USER_MEDIA: "USER_MEDIA",
-	STREAN: "STREAM"
+	STREAM: "STREAM"
 }
 
 export default class Sample {
 	constructor (context, recordMode = RECORD_MODE.USER_MEDIA) {
-		this.RECORD_MODE = recordMode
+		this.recordMode = recordMode
 		this.recordInput = context.createMediaStreamDestination();
 		this.context = context;
 		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
@@ -63,7 +63,7 @@ export default class Sample {
 	record() {
 		switch(this.recordMode) {
 			case RECORD_MODE.STREAM:
-				this.recordStream(this.input.stream);
+				this.recordStream(this.recordInput.stream);
 			break;
 			case RECORD_MODE.USER_MEDIA:
 				navigator.mediaDevices.getUserMedia({audio: true, video: false})

@@ -39,25 +39,21 @@ export default class Reverb extends Effect {
 
 	renderTail () {
 		let tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
-		//let buffer = tailContext.createBufferSource();
 		let tail = new Noise(tailContext, 1);
 		tail.init();
 		tail.connect(tailContext.destination);
 		tail.attack = this.attack;
 		tail.decay = this.decay;
 		tail.release = this.release;
+		
+		let rt = tailContext.startRendering().then((buffer) => {
+			this.effect.buffer = buffer;
+		});
+
 		tail.on(100);
 		tail.off();
-		return tailContext.startRendering().then((buffer) => {
 
-			// this.source = this.context.createBufferSource(buffer);
-			// this.source.buffer = buffer;
-			// this.source.start();
-			// this.source.connect(this.output);
-
-			this.effect.buffer = buffer;
-			console.log(buffer, this.effect);
-		});
+		return rt;
 	}
 
 	set decayTime(value) {

@@ -7,7 +7,8 @@ export const RECORD_MODE = {
 
 export default class Sample {
 	constructor (context, recordMode = RECORD_MODE.USER_MEDIA) {
-		this.recordMode = recordMode
+		this.recordMode = recordMode;
+		this._recordStream = null;
 		if(this.recordMode === RECORD_MODE.USER_MEDIA) {
 			this.recordInput = context.createGain();
 		} else {
@@ -81,10 +82,10 @@ export default class Sample {
 			this.buffered = 0;
 			this.stream = new Float32Array(0);
 
-			let input = this.context.createMediaStreamSource(stream);
+			this._recordStream = this.context.createMediaStreamSource(stream);
 			this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
 
-			input.connect(this._recordProcessor);
+			this._recordStream.connect(this._recordProcessor);
 			this._recordProcessor.connect(this.context.destination);
 			this._recordProcessor.onaudioprocess = (e) => {
 				let chunk = e.inputBuffer.getChannelData(0);
@@ -98,7 +99,8 @@ export default class Sample {
 
 	stopRecording() {
 
-		this._recordProcessor.disconnect();
+		this._recordStream.disconnect(this._recordProcessor);
+		this._recordProcessor.disconnect(this.context.destination);
 		this._recordProcessor.onaudioprocess = null;
 		this.rawBuffer = new Float32Array(this.stream.length);
 		this.rawBuffer = this.ramp(this.stream);

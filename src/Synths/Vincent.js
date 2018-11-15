@@ -13,6 +13,10 @@ export default class Vincent extends MizzyDevice {
 	NoteOn (MidiEvent) {
 		let voice = new ComplexVoice(this.context, this.oscillatorType, this.numberOfOscillators);
 		voice.init();
+		voice.attack = this.attack;
+		voice.decay = this.decay;
+		voice.sustain = this.sustain;
+		voice.release = this.release;
 		voice.connect(this.effectInput);
 		voice.on(MidiEvent);
 		this.voices[MidiEvent.value] = voice;

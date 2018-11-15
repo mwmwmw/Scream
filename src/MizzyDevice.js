@@ -55,4 +55,41 @@ export default class MizzyDevice {
 			voice.release = this._release;
 		});
 	}
+
+	set attack (value) {
+		this._attack = value;
+		this.setVoiceValues();
+	}
+
+	get attack () {
+		return this._attack;
+	}
+
+	set decay (value) {
+		this._decay  = value;
+		this.setVoiceValues();
+	}
+
+	get decay () {
+		return this._decay;
+	}
+
+	set sustain (value) {
+		this._sustain = value;
+		this.setVoiceValues();
+	}
+
+	get sustain () {
+		return this._sustain;
+	}
+
+	set release (value) {
+		this._release = value;
+		this.setVoiceValues();
+	}
+
+	get release () {
+		return this._release;
+	}
+
 }

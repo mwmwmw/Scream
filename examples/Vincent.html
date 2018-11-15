@@ -30,12 +30,13 @@
 
 	var vincent = new Scream.Synths.Vincent(Audio, 16, "sawtooth", 60);
 	vincent.addEffect(Scream.Effects.Filter);
-	vincent.addEffect(Scream.Effects.Delay);
+	//vincent.addEffect(Scream.Effects.Delay);
 	vincent.addEffect(Scream.Effects.Reverb);
-	vincent.attack = 1;
-	vincent.decay = 0.0001;
-	vincent.release = 0.000001;
-	vincent.output.gain.value = 0.05;
+	vincent.attack = 0.1;
+	vincent.decay = 1;
+	vincent.sustain = 0.3;
+	vincent.release = 1;
+	vincent.output.gain.value = 1;
 	vincent.connectEffects();
 
 	var map = new Scream.Components.SampleMap(Audio, [{

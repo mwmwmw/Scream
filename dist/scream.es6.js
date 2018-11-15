@@ -24,13 +24,15 @@ class AmpEnvelope {
 	start (time) {
 		this.output.gain.value = 0;
 		this.output.gain.setValueAtTime(0, time);
-		return this.output.gain.setTargetAtTime(this.sustain * this.velocity, time + this.attack, this.decay + 0.001);
+		this.output.gain.setTargetAtTime(1, time, this.attack+0.00001);
+		this.output.gain.setTargetAtTime(this.sustain * this.velocity, time + this.attack, this.decay);
 	}
 
 	stop (time) {
+		this.sustain = this.output.gain.value;
 		this.output.gain.cancelScheduledValues(time);
 		this.output.gain.setValueAtTime(this.sustain, time);
-		this.output.gain.setTargetAtTime(0, time, this.release);
+		this.output.gain.setTargetAtTime(0, time, this.release+0.00001);
 	}
 
 	set attack (value) {
@@ -184,9 +186,20 @@ class Filter {
 
 const SAMPLE_BUFFER_SIZE = 1024;
 
-class Sample {
-	constructor (context) {
+const RECORD_MODE = {
+	USER_MEDIA: "USER_MEDIA",
+	STREAM: "STREAM"
+};
 
+class Sample {
+	constructor (context, recordMode = RECORD_MODE.USER_MEDIA) {
+		this.recordMode = recordMode;
+		this._recordStream = null;
+		if(this.recordMode === RECORD_MODE.USER_MEDIA) {
+			this.recordInput = context.createGain();
+		} else {
+			this.recordInput = context.createMediaStreamDestination();
+		}
 		this.context = context;
 		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
 		this.rawBuffer = new Float32Array(this.buffer.length);
@@ -203,7 +216,12 @@ class Sample {
 				return this.context.decodeAudioData(myBlob);
 			})
 			.then((buffer) => {
-				this.buffer = buffer;
+				this.rawBuffer = new Float32Array(this.buffer.length);
+				this.rawBuffer = buffer.getChannelData(0);
+				this.buffer = this.context.createBuffer(2, this.rawBuffer.length, this.context.sampleRate);
+				this.buffer.copyToChannel(this.rawBuffer, 0);
+				this.buffer.copyToChannel(this.rawBuffer, 1);
+				return this;
 			})
 	}
 
@@ -233,45 +251,61 @@ class Sample {
 		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
-	record () {
-		this.buffered = 0;
-		this.stream = new Float32Array(0);
-		navigator.mediaDevices.getUserMedia({audio: true, video: false})
-			.then((stream) => {
-				let input = this.context.createMediaStreamSource(stream);
-				this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
+	record() {
+		switch(this.recordMode) {
+			case RECORD_MODE.STREAM:
+				this.recordStream(this.recordInput.stream);
+			break;
+			case RECORD_MODE.USER_MEDIA:
+				navigator.mediaDevices.getUserMedia({audio: true, video: false})
+				.then((stream) =>this.recordStream(stream));
+			break;
+		}
+	}
 
-				input.connect(this._recordProcessor);
-				this._recordProcessor.connect(this.context.destination);
-				this._recordProcessor.onaudioprocess = (e) => {
-					let chunk = e.inputBuffer.getChannelData(0);
-					var newStream = new Float32Array(this.stream.length + chunk.length);
-						newStream.set(this.stream);
-						newStream.set(chunk,chunk.length * this.buffered);
-						this.stream = newStream;
-					this.buffered++;
-				};
-			});
+	recordStream(stream) {
+
+			this.buffered = 0;
+			this.stream = new Float32Array(0);
+
+			this._recordStream = this.context.createMediaStreamSource(stream);
+			this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
+
+			this._recordStream.connect(this._recordProcessor);
+			this._recordProcessor.connect(this.context.destination);
+			this._recordProcessor.onaudioprocess = (e) => {
+				let chunk = e.inputBuffer.getChannelData(0);
+				var newStream = new Float32Array(this.stream.length + chunk.length);
+					newStream.set(this.stream);
+					newStream.set(chunk,chunk.length * this.buffered);
+					this.stream = newStream;
+				this.buffered++;
+			};
 	}
 
 	stopRecording() {
-		this._recordProcessor.disconnect();
+
+		this._recordStream.disconnect(this._recordProcessor);
+		this._recordProcessor.disconnect(this.context.destination);
+		this._recordProcessor.onaudioprocess = null;
+		this.rawBuffer = new Float32Array(this.stream.length);
 		this.rawBuffer = this.ramp(this.stream);
 		this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
-		this.buffer.copyToChannel(this.stream, 0);
-		this.buffer.copyToChannel(this.stream, 1);
+		this.buffer.copyToChannel(this.rawBuffer, 0);
+		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
 	ramp(buffer) {
 		let newBuffer = buffer; 
-		if(newBuffer.length > SAMPLE_BUFFER_SIZE) {
-			for(var i = 0; i < SAMPLE_BUFFER_SIZE; i++) {
-				newBuffer[i] = newBuffer[i] * i / SAMPLE_BUFFER_SIZE; 
+		const BUFFER_SIZE = 512;
+		if(newBuffer.length > BUFFER_SIZE) {
+			for(var i = 0; i < BUFFER_SIZE; i++) {
+				newBuffer[i] = newBuffer[i] * i / BUFFER_SIZE; 
 			}
-			var j = SAMPLE_BUFFER_SIZE;
-			for(var i = newBuffer.length-SAMPLE_BUFFER_SIZE; i < newBuffer.length; i++) {
+			var j = BUFFER_SIZE;
+			for(var i = newBuffer.length-BUFFER_SIZE; i < newBuffer.length; i++) {
 				j--;
-				newBuffer[i] = newBuffer[i] * j / SAMPLE_BUFFER_SIZE; 
+				newBuffer[i] = newBuffer[i] * j / BUFFER_SIZE; 
 			}
 		}
 		return newBuffer;
@@ -302,8 +336,8 @@ class Sample {
 		}
 		this.rawBuffer = this.ramp(mixedBuffer);
 		this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
-		this.buffer.copyToChannel(mixedBuffer, 0);
-		this.buffer.copyToChannel(mixedBuffer, 1);
+		this.buffer.copyToChannel(this.rawBuffer, 0);
+		this.buffer.copyToChannel(this.rawBuffer, 1);
 		this.overdub = false;
 	}
 }
@@ -337,9 +371,23 @@ class Effect {
 		this.context = context;
 		this.input = this.context.createGain();
 		this.effect = null;
+		this.bypassed = false;
 		this.output = this.context.createGain();
 		this.setup();
 		this.wireUp();
+	}
+
+	bypass(bool) {
+		if(bool != this.bypassed) {
+			this.bypassed = bool;
+			if(bool) {
+				this.input.connect(this.output);
+				this.input.disconnect(this.effect);
+			} else {
+				this.input.connect(this.effect);
+				this.input.disconnect(this.output);
+			}
+		}
 	}
 
 	setup() {
@@ -494,7 +542,7 @@ class FFT extends Effect{
 
 		var ctx = this.ctx;
 		ctx.save();
-		ctx.globalAlpha = 0.5;
+		//ctx.globalAlpha = 0.5;
 		ctx.fillStyle = "rgb(33,33,99)";
 		ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 		ctx.restore();
@@ -683,25 +731,21 @@ class Reverb extends Effect {
 
 	renderTail () {
 		let tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
-		//let buffer = tailContext.createBufferSource();
 		let tail = new Noise(tailContext, 1);
 		tail.init();
 		tail.connect(tailContext.destination);
 		tail.attack = this.attack;
 		tail.decay = this.decay;
 		tail.release = this.release;
+		
+		let rt = tailContext.startRendering().then((buffer) => {
+			this.effect.buffer = buffer;
+		});
+
 		tail.on(100);
 		tail.off();
-		return tailContext.startRendering().then((buffer) => {
 
-			// this.source = this.context.createBufferSource(buffer);
-			// this.source.buffer = buffer;
-			// this.source.start();
-			// this.source.connect(this.output);
-
-			this.effect.buffer = buffer;
-			console.log(buffer, this.effect);
-		});
+		return rt;
 	}
 
 	set decayTime(value) {
@@ -857,22 +901,23 @@ class SamplePlayer extends Voice {
 
 	constructor(context, buffer, loop = true, tune = true, sampleTuneFrequency = BASE_SAMPLE_TUNING) {
 		super(context);
-		this.buffer = this.context.createBufferSource(buffer);
+		this.buffer = this.context.createBufferSource();
 		this.buffer.buffer = buffer;
-		this.length = this.buffer.buffer.duration;
-		this._loopLength = this.length;
 		this.tune = tune;
 		this.loop = loop;
-		// this.buffer.loopStart = 0;
-		// this.buffer.loopEnd = 0;
 		this.sampleTuneFrequency = sampleTuneFrequency;
+		this._loopstart = 0;
+		this._loopend = 0;
+		this.loopStart = 0;
+		this.loopEnd = 1;
 	}
 
 	init() {
 		this.buffer.connect(this.ampEnvelope.output);
 		this.buffer.loop = this.loop;
+		this.buffer.loopStart = this._loopstart;
+		this.buffer.loopEnd = this._loopend;
 		this.partials.push(this.buffer);
-
 	}
 
 	on(MidiEvent) {
@@ -887,18 +932,18 @@ class SamplePlayer extends Voice {
 		this.ampEnvelope.on(MidiEvent.velocity || MidiEvent);
 	}
 
-	set loopStart(value) {
-		this.buffer.loopStart = this.buffer.buffer.duration * value;
-		this.buffer.loopEnd = this.buffer.loopStart + this.loopLength;
+	set loopStart (value) {
+		this._loopstart = value * this.loopLength;
+		this.buffer.loopStart = this._loopstart;
 	}
 
-	set loopLength(value) {
-		this._loopLength = value;
-		this.buffer.loopEnd = this.buffer.loopStart + this._loopLength;
+	set loopEnd(value) {
+		this._loopend = value * this.loopLength;
+		this.buffer.loopEnd = this._loopend;
 	}
 
 	get loopLength () {
-		return this._loopLength;
+		return this.buffer.buffer.duration;
 	}
 
 }
@@ -960,153 +1005,6 @@ class MizzyDevice {
 			voice.release = this._release;
 		});
 	}
-}
-
-class Vincent extends MizzyDevice {
-
-	constructor (context, count, type = "sawtooth", wideness = 50) {
-		super(context);
-		this.oscillatorType = type;
-		this.numberOfOscillators = count;
-		this._wideness = wideness;
-	}
-
-	NoteOn (MidiEvent) {
-		let voice = new ComplexVoice(this.context, this.oscillatorType, this.numberOfOscillators);
-		voice.init();
-		voice.connect(this.effectInput);
-		voice.on(MidiEvent);
-		this.voices[MidiEvent.value] = voice;
-	}
-
-	set wideness (value) {
-		this._wideness = value;
-		this.voices.forEach((voice) => voice.wideness = this._wideness);
-	}
-
-	get wideness () {
-		return this._wideness;
-	}
-
-	set type (value) {
-
-	}
-
-}
-
-class VSS30 extends MizzyDevice {
-
-	static get LOOP_MODES () {
-		return {
-			NORMAL: "NORMAL",
-			PINGPONG: "PINGPONG"
-		}
-	}
-
-	constructor (context) {
-		super(context);
-		this.sample = new Sample(this.context);
-		this.recording = false;
-		this._loop = true;
-		this._loopMode = VSS30.LOOP_MODES.NORMAL;
-		this._reverse = false;
-		this._loopStart = 0;
-		this._loopEnd = 0;
-		this._loopLength = 1;
-	}
-
-	record(timeout = null, overdub = false) {
-		if(!this.recording) {
-			console.log("recording...");
-			this.recording = true;
-			this.sample.overdub = overdub;
-			this.sample.record();
-			if(timeout!=null) {
-				setTimeout(() => this.stopRecording(), timeout);
-			}
-		}
-	}
-
-	stopRecording() {
-		if(this.recording) {
-			this.recording = false;
-			if(!this.sample.overdub) {
-				this.sample.stopRecording();
-			} else {
-				this.sample.overwrite();
-			}
-			console.log("stop recording.", this.sample.buffer.length);
-		}
-	}
-
-	NoteOn (MidiEvent) {
-		let voice = new SamplePlayer(this.context, this.sample.buffer, this._loop);
-		this.setVoiceValues();
-		voice.init();
-		voice.connect(this.effectInput);
-		voice.on(MidiEvent);
-		this.voices[MidiEvent.value] = voice;
-	}
-
-	set loop (value) {
-		this._loop = value;
-	}
-
-	get loop () {
-		return this._loop;
-	}
-
-	set loopMode (value) {
-		this._loopMode = value;
-	}
-
-	set loopStart(value) {
-		this._loopStart = value;
-		this.setVoiceValues();
-	}
-
-	set loopMode (value) {
-		this._loopMode = value;
-		switch (this._loopMode) {
-			case VSS30.LOOP_MODES.PINGPONG:
-				this.sample.pingpong();
-				break;
-			case VSS30.LOOP_MODES.NORMAL:
-				this.sample.normal();
-				break;
-		}
-	}
-
-	get loopMode () {
-		return this._loopMode;
-	}
-
-	toggleReverse() {
-		this.sample.reverse();
-	}
-
-	get loopStart () {
-		return this._loopStart;
-	}
-
-	set loopEnd(value) {
-		this._loopEnd = value;
-		this.setVoiceValues();
-	}
-
-	get loopEnd () {
-		return this._loopEnd;
-	}
-
-	set loopLength(value) {
-		this._loopLength = value;
-		this.setVoiceValues();
-	}
-
-	get loopLength () {
-		return this._loopLength;
-	}
-
 
 	set attack (value) {
 		this._attack = value;
@@ -1144,8 +1042,159 @@ class VSS30 extends MizzyDevice {
 		return this._release;
 	}
 
+}
+
+class Vincent extends MizzyDevice {
+
+	constructor (context, count, type = "sawtooth", wideness = 50) {
+		super(context);
+		this.oscillatorType = type;
+		this.numberOfOscillators = count;
+		this._wideness = wideness;
+	}
+
+	NoteOn (MidiEvent) {
+		let voice = new ComplexVoice(this.context, this.oscillatorType, this.numberOfOscillators);
+		voice.init();
+		voice.attack = this.attack;
+		voice.decay = this.decay;
+		voice.sustain = this.sustain;
+		voice.release = this.release;
+		voice.connect(this.effectInput);
+		voice.on(MidiEvent);
+		this.voices[MidiEvent.value] = voice;
+	}
+
+	set wideness (value) {
+		this._wideness = value;
+		this.voices.forEach((voice) => voice.wideness = this._wideness);
+	}
+
+	get wideness () {
+		return this._wideness;
+	}
+
+	set type (value) {
+
+	}
+
+}
+
+class VSS30 extends MizzyDevice {
+
+	static get LOOP_MODES () {
+		return {
+			NORMAL: "NORMAL",
+			PINGPONG: "PINGPONG"
+		}
+	}
+
+	constructor (context) {
+		super(context);
+		this.sample = new Sample(this.context);
+		this.recording = false;
+		this._loop = true;
+		this._loopMode = VSS30.LOOP_MODES.NORMAL;
+		this._reverse = false;
+		this._loopStart = 0;
+		this._loopEnd = 1;
+	}
+
+	record(timeout = null, overdub = false) {
+		if(!this.recording) {
+			console.log("recording...");
+			this.recording = true;
+			this.sample.overdub = overdub;
+			this.sample.record();
+			if(timeout!=null) {
+				setTimeout(() => this.stopRecording(), timeout);
+			}
+		}
+	}
+
+	stopRecording() {
+		if(this.recording) {
+			this.recording = false;
+			if(!this.sample.overdub) {
+				this.sample.stopRecording();
+			} else {
+				this.sample.overwrite();
+			}
+		}
+	}
+
+	NoteOn (MidiEvent) {
+		let voice = new SamplePlayer(this.context, this.sample.buffer, this._loop);
+			voice.attack = this.attack;
+			voice.decay = this.decay;
+			voice.sustain = this.sustain;
+			voice.release = this.release;
+			voice.loopStart = this._loopStart;
+			voice.loopEnd = this._loopEnd;
+		voice.init();
+		voice.connect(this.effectInput);
+		voice.on(MidiEvent);
+		this.voices[MidiEvent.value] = voice;
+	}
+
+	set loop (value) {
+		this._loop = value;
+	}
+
+	get loop () {
+		return this._loop;
+	}
+
+	set loopMode (value) {
+		this._loopMode = value;
+	}
+
+	set loopStart(value) {
+		this._loopStart = value;
+		this.setVoiceValues();
+	}
+
+	set loopMode (value) {
+		this._loopMode = value;
+		switch (this._loopMode) {
+			case VSS30.LOOP_MODES.PINGPONG:
+				this.sample.pingpong();
+				break;
+			case VSS30.LOOP_MODES.NORMAL:
+				this.sample.normal();
+				break;
+		}
+		this.setVoiceValues();
+	}
+
+	get loopMode () {
+		return this._loopMode;
+	}
+
+	toggleReverse() {
+		this.sample.reverse();
+	}
+
+	get loopStart () {
+		return this._loopStart;
+	}
+
+	set loopEnd(value) {
+		this._loopEnd = value;
+		this.setVoiceValues();
+	}
+
+	get loopEnd () {
+		return this._loopEnd;
+	}
+
+	get loopLength () {
+		return this.sample.buffer.duration;
+	}
+
 	setSample( sample ) {
 		this.sample = sample;
+		this.setVoiceValues();
 	}
 
 	setVoiceValues() {
@@ -1155,8 +1204,7 @@ class VSS30 extends MizzyDevice {
 			voice.sustain = this._sustain;
 			voice.release = this._release;
 			voice.loopStart = this._loopStart;
-			//voice.loopEnd = this._loopEnd;
-			voice.loopLength = this._loopLength;
+			voice.loopEnd = this._loopEnd;
 		});
 	}
 

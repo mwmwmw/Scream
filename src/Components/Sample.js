@@ -1,4 +1,4 @@
-const SAMPLE_BUFFER_SIZE = 1024;
+const SAMPLE_BUFFER_SIZE = 2048;
 
 export const RECORD_MODE = {
 	USER_MEDIA: "USER_MEDIA",
@@ -65,26 +65,23 @@ export default class Sample {
 		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
-	record() {
+	record(cb = () => {}) {
 		switch(this.recordMode) {
 			case RECORD_MODE.STREAM:
-				this.recordStream(this.recordInput.stream);
+				this.recordStream(this.recordInput.stream, cb);
 			break;
 			case RECORD_MODE.USER_MEDIA:
 				navigator.mediaDevices.getUserMedia({audio: true, video: false})
-				.then((stream) =>this.recordStream(stream))
+				.then((stream) =>this.recordStream(stream, cb))
 			break;
 		}
 	}
 
-	recordStream(stream) {
-
+	recordStream(stream, cb = ()=>{}) {
 			this.buffered = 0;
 			this.stream = new Float32Array(0);
-
 			this._recordStream = this.context.createMediaStreamSource(stream);
 			this._recordProcessor = this.context.createScriptProcessor(SAMPLE_BUFFER_SIZE, 1, 2);
-
 			this._recordStream.connect(this._recordProcessor);
 			this._recordProcessor.connect(this.context.destination);
 			this._recordProcessor.onaudioprocess = (e) => {
@@ -94,11 +91,11 @@ export default class Sample {
 					newStream.set(chunk,chunk.length * this.buffered);
 					this.stream = newStream;
 				this.buffered++;
+				cb(this.stream.length, this.buffered);
 			};
 	}
 
 	stopRecording() {
-
 		this._recordStream.disconnect(this._recordProcessor);
 		this._recordProcessor.disconnect(this.context.destination);
 		this._recordProcessor.onaudioprocess = null;
@@ -109,20 +106,50 @@ export default class Sample {
 		this.buffer.copyToChannel(this.rawBuffer, 1);
 	}
 
+	trim(buffer) {
+		let startIndex = 0;
+		for(let i = 0; i<buffer.length; i++) {
+			if(buffer[i] > 0) {
+				startIndex = i;
+				break;
+			}
+		}
+		return buffer.slice(startIndex);
+	}
+
 	ramp(buffer) {
-		let newBuffer = buffer; 
+		let newBuffer = this.trim(buffer); 
 		const BUFFER_SIZE = 512;
 		if(newBuffer.length > BUFFER_SIZE) {
-			for(var i = 0; i < BUFFER_SIZE; i++) {
+			for(let i = 0; i < BUFFER_SIZE; i++) {
 				newBuffer[i] = newBuffer[i] * i / BUFFER_SIZE; 
 			}
 			var j = BUFFER_SIZE;
-			for(var i = newBuffer.length-BUFFER_SIZE; i < newBuffer.length; i++) {
+			for(let i = newBuffer.length-BUFFER_SIZE; i < newBuffer.length; i++) {
 				j--;
 				newBuffer[i] = newBuffer[i] * j / BUFFER_SIZE; 
 			}
 		}
 		return newBuffer;
+	}
+
+	normalize(buffer) {
+		const b = buffer.slice();
+	
+		const va = -0.98; // a
+		const vb = 0.98;  // b
+	
+		let vmin = -(1-0.98); // A
+		let vmax = (1-0.98); // B
+	
+		b.forEach(v=>{
+			if(v>vmax) {vmax = v};
+			if(v<vmin) {vmin = v};
+		});
+	
+		return b.map(v=>{
+			return va + (v - vmin) * (vb - va) / (vmax - vmin);
+		})
 	}
 
 	overwrite () {
@@ -134,7 +161,7 @@ export default class Sample {
 			bufferlength = this.buffer.length;
 		}
 		let mixedBuffer = new Float32Array(bufferlength);
-		let bufferA = this.stream;
+		let bufferA = this.ramp(this.stream);
 		let bufferB = new Float32Array( this.buffer.length);
 		this.buffer.copyFromChannel(bufferB, 1, 0);
 		for(let i = 0; i < bufferlength; i++) {
@@ -148,7 +175,7 @@ export default class Sample {
 			}
 			mixedBuffer[i] = aValue + bValue;
 		}
-		this.rawBuffer = this.ramp(mixedBuffer);
+		this.rawBuffer = mixedBuffer;
 		this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
 		this.buffer.copyToChannel(this.rawBuffer, 0);
 		this.buffer.copyToChannel(this.rawBuffer, 1);

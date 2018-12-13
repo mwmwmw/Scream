@@ -22,16 +22,20 @@ export default class VSS30 extends MizzyDevice {
 		this._loopEnd = 1;
 	}
 
-	record(timeout = null, overdub = false) {
-		if(!this.recording) {
-			console.log("recording...");
-			this.recording = true;
-			this.sample.overdub = overdub;
-			this.sample.record();
-			if(timeout!=null) {
-				setTimeout(() => this.stopRecording(), timeout)
+	record(timeout = 2000, overdub = false) {
+		return new Promise((resolve, reject)=>{
+			let requiredSamples = this.context.sampleRate*(timeout/1000);
+			if(!this.recording) {
+				this.recording = true;
+				this.sample.overdub = overdub;
+				this.sample.record((streamLength)=>{
+					if(streamLength > requiredSamples) {
+						this.stopRecording();
+						resolve(this);
+					}
+				});
 			}
-		}
+		})
 	}
 
 	stopRecording() {

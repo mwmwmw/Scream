@@ -18,8 +18,8 @@ export default class Noise extends Voice{
 		var lBuffer = new Float32Array(this.length * this.context.sampleRate);
 		var rBuffer = new Float32Array(this.length * this.context.sampleRate);
 		for(let i = 0; i < this.length * this.context.sampleRate; i++) {
-			lBuffer[i] = Math.random();
-			rBuffer[i] = Math.random();
+			lBuffer[i] = 1-(2*Math.random());
+			rBuffer[i] = 1-(2*Math.random());
 		}
 		let buffer = this.context.createBuffer(2, this.length * this.context.sampleRate, this.context.sampleRate);
 		buffer.copyToChannel(lBuffer,0);
@@ -30,9 +30,6 @@ export default class Noise extends Voice{
 			osc.loop = true;
 			osc.loopStart = 0;
 			osc.loopEnd = 2;
-
-
-
 			osc.start(this.context.currentTime);
 			osc.connect(this.ampEnvelope.output);
 		this.partials.push(osc);

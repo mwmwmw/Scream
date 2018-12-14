@@ -1,12 +1,18 @@
 const SAMPLE_BUFFER_SIZE = 2048;
 
+const PLAYBACK_MODE = {
+	NORMAL: "NORMAL",
+	PING_PONG: "PING_PONG",
+	REVERSE: "REVERSE",
+}
+
 export const RECORD_MODE = {
 	USER_MEDIA: "USER_MEDIA",
 	STREAM: "STREAM"
 }
 
 export default class Sample {
-	constructor (context, recordMode = RECORD_MODE.USER_MEDIA) {
+	constructor (context, recordMode = RECORD_MODE.USER_MEDIA, rawBuffer = new Float32Array(1)) {
 		this.recordMode = recordMode;
 		this._recordStream = null;
 		if(this.recordMode === RECORD_MODE.USER_MEDIA) {
@@ -15,12 +21,15 @@ export default class Sample {
 			this.recordInput = context.createMediaStreamDestination();
 		}
 		this.context = context;
-		this.buffer = this.context.createBuffer(2, 1, this.context.sampleRate);
-		this.rawBuffer = new Float32Array(this.buffer.length);
-		this.buffer.copyFromChannel(this.rawBuffer, 1,0);
+		this.buffer = this.context.createBuffer(2, rawBuffer.length, this.context.sampleRate);
+		this.rawBuffer = rawBuffer.slice();
+		
 		this.stream = null;
 		this._recordProcessor = null;
 		this.overdub = false;
+		this.normalize = false;
+		this.playbackMode = PLAYBACK_MODE.NORMAL;
+		this.copyRawToBuffer(this.rawBuffer);
 	}
 
 	load (path) {
@@ -32,37 +41,28 @@ export default class Sample {
 			.then((buffer) => {
 				this.rawBuffer = new Float32Array(this.buffer.length);
 				this.rawBuffer = buffer.getChannelData(0);
-				this.buffer = this.context.createBuffer(2, this.rawBuffer.length, this.context.sampleRate);
-				this.buffer.copyToChannel(this.rawBuffer, 0);
-				this.buffer.copyToChannel(this.rawBuffer, 1);
+				this.setBuffer();
 				return this;
 			})
 	}
 
 	reverse () {
-		let reverse = new Float32Array(this.rawBuffer);
-			reverse.reverse();
-		this.buffer = this.context.createBuffer(2, reverse.length, this.context.sampleRate);
-		this.buffer.copyToChannel(reverse, 0);
-		this.buffer.copyToChannel(reverse, 1);
+		this.playbackMode = PLAYBACK_MODE.REVERSE;
+		let reverse = this.rawBuffer.slice().reverse();
+		this.copyRawToBuffer(reverse);
 	}
 
 	pingpong () {
-		let offset = this.rawBuffer.length;
-		let newArray = new Float32Array(offset * 2);
-		let reverse = new Float32Array(this.rawBuffer);
-		reverse.reverse();
+		this.playbackMode = PLAYBACK_MODE.PING_PONG;
+		let newArray = new Float32Array(this.rawBuffer.length * 2);
 		newArray.set(this.rawBuffer, 0);
-		newArray.set(reverse, offset-1);
-		this.buffer = this.context.createBuffer(2, newArray.length, this.context.sampleRate);
-		this.buffer.copyToChannel(newArray, 0);
-		this.buffer.copyToChannel(newArray, 1);
+		newArray.set(this.rawBuffer.slice().reverse(), this.rawBuffer.length-1);
+		this.copyRawToBuffer(newArray);
 	}
 
 	normal () {
-		this.buffer = this.context.createBuffer(2, this.rawBuffer.length, this.context.sampleRate);
-		this.buffer.copyToChannel(this.rawBuffer, 0);
-		this.buffer.copyToChannel(this.rawBuffer, 1);
+		this.playbackMode = PLAYBACK_MODE.NORMAL;
+		this.copyRawToBuffer(this.rawBuffer);
 	}
 
 	record(cb = () => {}) {
@@ -99,11 +99,46 @@ export default class Sample {
 		this._recordStream.disconnect(this._recordProcessor);
 		this._recordProcessor.disconnect(this.context.destination);
 		this._recordProcessor.onaudioprocess = null;
-		this.rawBuffer = new Float32Array(this.stream.length);
-		this.rawBuffer = this.ramp(this.stream);
-		this.buffer = this.context.createBuffer(2, this.stream.length, this.context.sampleRate);
-		this.buffer.copyToChannel(this.rawBuffer, 0);
-		this.buffer.copyToChannel(this.rawBuffer, 1);
+		this._recordProcessor.disconnect();
+
+		let recordedBuffer = this.ramp(this.stream);
+
+		if(this.overdub) {
+			let mixedBuffer = this.mixRawBuffers(recordedBuffer, this.rawBuffer);
+			this.rawBuffer = mixedBuffer;
+		} else {
+			this.rawBuffer = recordedBuffer;
+		}
+
+		this.setBuffer();
+		
+	}
+
+	setBuffer() {
+		switch(this.playbackMode) {
+			case PLAYBACK_MODE.NORMAL:
+				this.normal();
+				break;
+			case PLAYBACK_MODE.PING_PONG:
+				this.pingpong(); 
+				break;
+			case PLAYBACK_MODE.REVERSE:
+				this.reverse(); 
+				break;
+			default:
+				this.normal();
+				break;
+		}
+	}
+
+	copyRawToBuffer(rawBuffer) {
+		let copyBuffer = rawBuffer;
+		if(this.normalize) {
+			copyBuffer = this.normalize(copyBuffer);
+		}
+		this.buffer = this.context.createBuffer(2, copyBuffer.length, this.context.sampleRate);
+		this.buffer.copyToChannel(copyBuffer, 0);
+		this.buffer.copyToChannel(copyBuffer, 1);
 	}
 
 	trim(buffer) {
@@ -152,19 +187,11 @@ export default class Sample {
 		})
 	}
 
-	overwrite () {
-		this._recordProcessor.disconnect();
-		var bufferlength = 0;
-		if (this.stream.length > this.buffer.length) {
-			bufferlength = this.stream.length;
-		} else {
-			bufferlength = this.buffer.length;
-		}
-		let mixedBuffer = new Float32Array(bufferlength);
-		let bufferA = this.ramp(this.stream);
-		let bufferB = new Float32Array( this.buffer.length);
-		this.buffer.copyFromChannel(bufferB, 1, 0);
-		for(let i = 0; i < bufferlength; i++) {
+	mixRawBuffers(bufferA, bufferB) {
+		let bufferLength = this.getLongestBuffer(bufferA, bufferB);
+		let mixedBuffer = new Float32Array(bufferLength);
+		
+		for(let i = 0; i < bufferLength; i++) {
 			let aValue = 0;
 			let bValue = 0;
 			if(bufferA[i] != undefined) {
@@ -175,10 +202,12 @@ export default class Sample {
 			}
 			mixedBuffer[i] = aValue + bValue;
 		}
-		this.rawBuffer = mixedBuffer;
-		this.buffer = this.context.createBuffer(2, bufferlength, this.context.sampleRate);
-		this.buffer.copyToChannel(this.rawBuffer, 0);
-		this.buffer.copyToChannel(this.rawBuffer, 1);
-		this.overdub = false;
+
+		return mixedBuffer;
 	}
+
+	getLongestBuffer(bufferA, bufferB) {
+		return bufferA.length > bufferB.length ? bufferA.length : bufferB.length;
+	}
+
 }

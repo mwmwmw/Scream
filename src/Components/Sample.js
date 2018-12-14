@@ -48,8 +48,7 @@ export default class Sample {
 
 	reverse () {
 		this.playbackMode = PLAYBACK_MODE.REVERSE;
-		let reverse = this.rawBuffer.slice().reverse();
-		this.copyRawToBuffer(reverse);
+		this.copyRawToBuffer(this.rawBuffer.slice().reverse());
 	}
 
 	pingpong () {

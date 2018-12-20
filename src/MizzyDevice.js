@@ -32,7 +32,6 @@ export default class MizzyDevice {
 	connectEffects () {
 		this.effectInput = this.effects[0].input;
 		for (let i = this.effects.length - 1; i >= 0; i--) {
-			console.log(this.effects[i]);
 			if (i == this.effects.length - 1) {
 				this.effects[i].connect(this.output);
 			} else {

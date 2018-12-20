@@ -17,9 +17,7 @@ export default class Effect {
 			if(bool) {
 				this.input.connect(this.output);
 				this.input.disconnect(this.effect);
-				//this.effect.disconnect(this.output);
 			} else {
-				//this.effect.connect(this.output);
 				this.input.connect(this.effect);
 				this.input.disconnect(this.output);
 			}

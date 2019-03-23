@@ -36,7 +36,7 @@ export default class FFT extends Effect{
 			break;
 			case FFT_TYPES.FREQUENCY8:
 			var myDataArray = new Uint8Array(this.effect.frequencyBinCount);
-			this.effect.getByteTimeDomainData(myDataArray)
+			this.effect.getByteFrequencyDomainData(myDataArray)
 			break;
 			case FFT_TYPES.TIME8:
 			var myDataArray = new Uint8Array(this.effect.frequencyBinCount);

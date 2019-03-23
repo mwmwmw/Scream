@@ -1,6 +1,9 @@
 import Effect from "./Effect";
 import Noise from "../Voices/Noise";
 
+// SAFARI Fix
+const OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext; 
+
 export default class Reverb extends Effect {
 	constructor (context) {
 		super(context);

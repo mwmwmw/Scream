@@ -24,7 +24,9 @@
 <script src="https://cdn.jsdelivr.net/gh/mwmwmw/Mizzy@bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
-	var Audio = new (window.AudioContext || window.webkitAudioContext)();
+	var AudioContext = window.AudioContext || window.webkitAudioContext;
+
+var Audio = new (window.AudioContext || window.webkitAudioContext)();
 
 	var MIDI_CHANNEL = 1;
 
@@ -60,7 +62,7 @@
 	var fft = new Scream.Effects.FFT(Audio);
 		fft.mode = 1;
 	fft.connect(Audio.destination);
-	fft.draw();
+	//fft.draw();
 	vss30.connect(fft.input);
 
 	var m = new Mizzy();

@@ -4,7 +4,7 @@ module.exports = function (config) {
     frameworks: [ "mocha", "chai" ],
     basePath: "../",
     files: [
-      "dist/mizzy-synth.js",
+      "dist/scream.js",
       "test/**/*.js"
     ],
     reporters: [ "mocha" ]

@@ -18,7 +18,7 @@ export default class Reverb extends Effect {
 
 		this.reverbTime = 2;
 
-		this.attack = 0;
+		this.attack = 0.001;
 		this.decay = 0.2;
 		this.release = 0.8;
 
@@ -27,7 +27,7 @@ export default class Reverb extends Effect {
 		this.dry = this.context.createGain();
 		this.dry.gain.value = 1;
 
-		this.buffer = this.renderTail();
+		this.renderTail();
 		this.wireUp();
 	}
 
@@ -41,22 +41,24 @@ export default class Reverb extends Effect {
 	}
 
 	renderTail () {
-		let tailContext = new OfflineAudioContext(2, this.context.sampleRate * this.reverbTime, this.context.sampleRate);
-		let tail = new Noise(tailContext, 1);
-		tail.init();
-		tail.connect(tailContext.destination);
-		tail.attack = this.attack;
-		tail.decay = this.decay;
-		tail.release = this.release;
+		const tailContext = new OfflineAudioContext( 2, this.context.sampleRate * this.reverbTime, this.context.sampleRate );
+			tailContext.oncomplete = (buffer) => {
+				this.effect.buffer = buffer.renderedBuffer;
+			}
 		
-		let rt = tailContext.startRendering().then((buffer) => {
-			this.effect.buffer = buffer;
-		});
-
-		tail.on(100);
-		tail.off();
-
-		return rt;
+    const tailOsc = new Noise(tailContext, 1);
+          tailOsc.init();
+          tailOsc.connect(tailContext.destination);
+          tailOsc.attack = this.attack;
+          tailOsc.decay = this.decay;
+          tailOsc.release = this.release;
+		
+      
+      tailOsc.on({frequency: 500, velocity: 1});
+			tailContext.startRendering();
+		setTimeout(()=>{
+			tailOsc.off(); 
+		},20);
 	}
 
 	set decayTime(value) {
@@ -65,7 +67,7 @@ export default class Reverb extends Effect {
 		this.attack = 0;
 		this.decay = dc;
 		this.release = dc;
-		this.buffer = this.renderTail();
+		this.renderTail();
 	}
 
 }

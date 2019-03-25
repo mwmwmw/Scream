@@ -34,16 +34,17 @@ export default class Sample {
 
 	load (path) {
 		return fetch(path)
-			.then((response) => response.arrayBuffer())
-			.then((myBlob) => {
-				return this.context.decodeAudioData(myBlob);
+		.then((response) => response.arrayBuffer())
+		.then((myBlob) => {
+			return new Promise((resolve, reject)=>{
+				this.context.decodeAudioData(myBlob, resolve, reject);	
 			})
-			.then((buffer) => {
-				this.rawBuffer = new Float32Array(this.buffer.length);
-				this.rawBuffer = buffer.getChannelData(0);
-				this.setBuffer();
-				return this;
-			})
+		})
+		.then((buffer) => {
+			this.rawBuffer = new Float32Array(this.buffer.length);
+			this.rawBuffer = buffer.getChannelData(0);
+			this.setBuffer();
+		})
 	}
 
 	reverse () {

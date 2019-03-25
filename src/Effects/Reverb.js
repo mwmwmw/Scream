@@ -58,7 +58,7 @@ export default class Reverb extends Effect {
 			tailContext.startRendering();
 		setTimeout(()=>{
 			tailOsc.off(); 
-		},20);
+		},1);
 	}
 
 	set decayTime(value) {

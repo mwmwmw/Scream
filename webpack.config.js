@@ -6,8 +6,8 @@ var exportLibrary = {
       filename: 'scream.js',
       path: path.resolve(__dirname, 'dist'),
       library: "Scream",
-      libraryExport: "default",
-      libraryTarget: "window",
+      libraryTarget: "umd",
+      globalObject: 'this'
     }
 }
 

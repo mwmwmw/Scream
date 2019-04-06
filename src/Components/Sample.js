@@ -44,6 +44,7 @@ export default class Sample {
 			this.rawBuffer = new Float32Array(this.buffer.length);
 			this.rawBuffer = buffer.getChannelData(0);
 			this.setBuffer();
+			return this;
 		})
 	}
 

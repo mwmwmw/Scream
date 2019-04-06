@@ -19,7 +19,7 @@
     </style>
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/gh/mwmwmw/Mizzy@bd96a35ed2704d04cdd7d2400eb709c972e37102/dist/mizzy.js" type="application/javascript"></script>
+<script src="https://cdn.jsdelivr.net/gh/mwmwmw/Mizzy@latest/dist/mizzy.js" type="application/javascript"></script>
 <script src="js/scream.js" type="application/javascript"></script>
 <script>
 
@@ -30,7 +30,7 @@
 
 	var vincent = new Scream.Synths.Vincent(Audio, 16, "sawtooth", 60);
 	vincent.addEffect(Scream.Effects.Filter);
-	//vincent.addEffect(Scream.Effects.Delay);
+	vincent.addEffect(Scream.Effects.Delay);
 	vincent.addEffect(Scream.Effects.Reverb);
 	vincent.attack = 0.1;
 	vincent.decay = 1;
@@ -168,6 +168,7 @@
 
 
 	function processTick (loopIndex, sequence, channel) {
+		console.log(channel)
 		if (sequence[loopIndex] != undefined) {
 			var message = sequence[loopIndex];
 			var event = Mizzy.Generate.MidiEvent(message, "C");
@@ -228,11 +229,12 @@
 	});
 
 	window.addEventListener("keydown", (e) => {
+		Audio.resume()
 		switch (e.keyCode) {
 			case 192:
 				if (m.clock.playing) {
-					m.clock.stop();
-					m.panic();
+					//m.clock.stop();
+					//m.panic();
 				} else {
 					m.clock.play();
 				}

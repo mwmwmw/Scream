@@ -26,6 +26,8 @@
 <script>
 	var AudioContext = window.AudioContext || window.webkitAudioContext;
 
+
+
 var Audio = new (window.AudioContext || window.webkitAudioContext)();
 
 	var MIDI_CHANNEL = 1;
@@ -62,7 +64,7 @@ var Audio = new (window.AudioContext || window.webkitAudioContext)();
 	var fft = new Scream.Effects.FFT(Audio);
 		fft.mode = 1;
 	fft.connect(Audio.destination);
-	//fft.draw();
+	fft.draw();
 	vss30.connect(fft.input);
 
 	var m = new Mizzy();
@@ -70,10 +72,8 @@ var Audio = new (window.AudioContext || window.webkitAudioContext)();
 		m.bindToAllInputs();
 		m.bindKeyboard(MIDI_CHANNEL);
 		m.keyToggleRange(0, 127, (e) => {
-			console.log(e);
 			vss30.NoteOn(e);
 		}, (e) => {
-			console.log(e);
 			vss30.NoteOff(e);
 		}, MIDI_CHANNEL);
 
@@ -143,11 +143,6 @@ var Audio = new (window.AudioContext || window.webkitAudioContext)();
 		}, MIDI_CHANNEL);
 
 	});
-
-	//for(let i=0; i<127;i++) {
-	//	m.onCC(i, (e)=>console.log(e));
-	//}
-	//
 
 	window.addEventListener("keyup", (e) => {
 		switch (e.keyCode) {

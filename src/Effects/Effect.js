@@ -15,11 +15,11 @@ export default class Effect {
 		if(bool != this.bypassed) {
 			this.bypassed = bool;
 			if(bool) {
-				this.input.connect(this.output);
 				this.input.disconnect(this.effect);
+				this.input.connect(this.output);
 			} else {
-				this.input.connect(this.effect);
 				this.input.disconnect(this.output);
+				this.input.connect(this.effect);
 			}
 		}
 	}

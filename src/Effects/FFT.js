@@ -1,11 +1,25 @@
 import Effect from "./Effect";
 import { FFT_TYPES } from "../Constants";
 
+if (global.AnalyserNode && !global.AnalyserNode.prototype.getFloatTimeDomainData) {
+    var uint8 = new Uint8Array(2048);
+    global.AnalyserNode.prototype.getFloatTimeDomainData = function(array) {
+      this.getByteTimeDomainData(uint8);
+      for (var i = 0, imax = array.length; i < imax; i++) {
+        array[i] = (uint8[i] - 128) * 0.0078125;
+      }
+    };
+  }
+
 export default class FFT extends Effect{
 	constructor (context) {
 		super(context);
 		this.name = "fft";
 		this.mode = FFT_TYPES.FREQUENCY;
+	}
+
+	static get FFT_TYPES () {
+		return FFT_TYPES;
 	}
 
 	setup () {

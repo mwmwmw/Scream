@@ -1,5 +1,5 @@
 export default class AmpEnvelope {
-	constructor (context, gain = 1) {
+	constructor (context, gain = 0) {
 		this.context = context;
 		this.output = this.context.createGain();
 		this.output.gain.value = gain;
@@ -10,6 +10,7 @@ export default class AmpEnvelope {
 		this._decay = 0.001;
 		this._sustain = this.output.gain.value;
 		this._release = 0.001;
+		this.maxTime = 2;
 	}
 
 	on (velocity) {
@@ -22,17 +23,19 @@ export default class AmpEnvelope {
 	}
 
 	start (time) {
-		this.output.gain.value = 0;
-		this.output.gain.setValueAtTime(0, time);
-		this.output.gain.setTargetAtTime(1, time, this.attack+0.00001);
-		this.output.gain.setTargetAtTime(this.sustain * this.velocity, time + this.attack, this.decay);
+		
+		var attackTime = this.attack*this.maxTime;
+		var decayTime = this.decay*this.maxTime;
+
+		this.output.gain.linearRampToValueAtTime(1, time + attackTime);
+		this.output.gain.linearRampToValueAtTime(this.sustain * this.velocity, time+attackTime+decayTime);
 	}
 
 	stop (time) {
 		this.sustain = this.output.gain.value;
-		this.output.gain.cancelScheduledValues(time);
-		this.output.gain.setValueAtTime(this.sustain, time);
-		this.output.gain.setTargetAtTime(0, time, this.release+0.00001);
+		this.output.gain.cancelScheduledValues(0);
+		this.output.gain.setValueAtTime(this.sustain, 0);
+		this.output.gain.linearRampToValueAtTime(0, time + (this.release* this.maxTime));
 	}
 
 	set attack (value) {

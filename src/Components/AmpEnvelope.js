@@ -1,5 +1,5 @@
 export default class AmpEnvelope {
-	constructor (context, gain = 0) {
+	constructor(context, gain = 0) {
 		this.context = context;
 		this.output = this.context.createGain();
 		this.output.gain.value = gain;
@@ -13,65 +13,63 @@ export default class AmpEnvelope {
 		this.maxTime = 2;
 	}
 
-	on (velocity) {
+	on(velocity) {
 		this.velocity = velocity / 127;
 		this.start(this.context.currentTime);
 	}
 
-	off (MidiEvent) {
+	off(MidiEvent) {
 		return this.stop(this.context.currentTime);
 	}
 
-	start (time) {
-		
-		var attackTime = this.attack*this.maxTime;
-		var decayTime = this.decay*this.maxTime;
+	start(time) {
+		var attackTime = this.attack * this.maxTime;
+		var decayTime = this.decay * this.maxTime;
+		this.output.gain.setValueAtTime(0, 0);
+		this.output.gain.linearRampToValueAtTime(this.velocity, this.context.currentTime + attackTime);
 
-		this.output.gain.linearRampToValueAtTime(1, time + attackTime);
-		this.output.gain.linearRampToValueAtTime(this.sustain * this.velocity, time+attackTime+decayTime);
+		this.output.gain.linearRampToValueAtTime(this.sustain * this.velocity, this.context.currentTime + attackTime + decayTime);
 	}
 
-	stop (time) {
-		this.sustain = this.output.gain.value;
+	stop(time) {
 		this.output.gain.cancelScheduledValues(0);
-		this.output.gain.setValueAtTime(this.sustain, 0);
-		this.output.gain.linearRampToValueAtTime(0, time + (this.release* this.maxTime));
+		this.output.gain.linearRampToValueAtTime(0, time + (this.release * this.maxTime));
 	}
 
-	set attack (value) {
+	set attack(value) {
 		this._attack = value;
 	}
 
-	get attack () {
+	get attack() {
 		return this._attack
 	}
 
-	set decay (value) {
+	set decay(value) {
 		this._decay = value;
 	}
 
-	get decay () {
+	get decay() {
 		return this._decay;
 	}
 
-	set sustain (value) {
+	set sustain(value) {
 		this.gain = value;
 		this._sustain;
 	}
 
-	get sustain () {
+	get sustain() {
 		return this.gain;
 	}
 
-	set release (value) {
+	set release(value) {
 		this._release = value;
 	}
 
-	get release () {
+	get release() {
 		return this._release;
 	}
 
-	connect (destination) {
+	connect(destination) {
 		this.output.connect(destination);
 	}
 }

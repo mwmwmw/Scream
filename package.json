@@ -1,5 +1,5 @@
 {
-  "name": "Scream",
+  "name": "scream",
   "version": "1.0.0",
   "description": "Synthesizer Components",
   "main": "src/Main.js",
@@ -9,8 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack"
   },
-  "devDependencies": {
-    "webpack": "^4.25.1",
-    "webpack-cli": "^3.1.2"
+  "dependencies": {
+    "webpack": "^5.70.0",
+    "webpack-cli": "^4.9.2"
   }
 }
